@@ -7,11 +7,10 @@ Note: expects SPIRV-Cross to be checked out under src/3rdparty
 
 See shaderstack.txt for vision and motivation.
 
-All APIs are WIP or missing. For now, use qsc to test. This needs
-glslc to be in the PATH. Alternatively, set QT_GLSLC, for example:
-export QT_GLSLC=~/android-ndk-r13b/shader-tools/linux-x86_64/glslc
+All APIs are WIP. To manually run qsc, glslc needs to be in the PATH.
+Alternatively, set QT_GLSLC, for example: export QT_GLSLC=~/android-ndk-r13b/shader-tools/linux-x86_64/glslc
 
-For instance, going to test/playground and running qsc color_phong.frag results in:
+For instance, going to test/playground and running "qsc color_phong.frag" results in:
 
  * color_phong.frag.spv -> SPIR-V binary
  * color_phong.frag.refl.json -> reflection data (text, for debugging)
@@ -19,6 +18,26 @@ For instance, going to test/playground and running qsc color_phong.frag results 
  * color_phong.frag.glsl100 -> SPIRV-Cross' translation to GLSL (ES) 100
  * color_phong.frag.glsl150 -> SPIRV-Cross' translation to GLSL 150
 
-It's not hard to see where this is going. Looks promising for now.
-
 See qsc --help for configuration options.
+
+It's not hard to see where this is going. Once qsc generated the stuff at build
+time, we can include it in the resource system and do things like:
+
+```
+QShader vs(QLatin1String(":/color.vert")); // just the common prefix
+QShader fs(QLatin1String(":/color.frag"));
+
+qDebug() << vs.availableGlslVersions();
+qDebug() << fs.availableGlslVersions();
+
+QSurfaceFormat coreFmt;
+coreFmt.setVersion(3, 2);
+coreFmt.setProfile(QSurfaceFormat::CoreProfile);
+
+QByteArray vertexShaderSource = vs.glsl(coreFmt); // by defaults picks the version 150 variant
+
+QByteArray shaderBlob = vs.spirv(); // can be passed as-is to Vulkan
+
+QShaderDescription desc = vs.description(); // reflection: in/out vars, uniform blocks, ...
+
+```

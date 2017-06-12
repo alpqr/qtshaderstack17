@@ -46,6 +46,7 @@ int main(int argc, char **argv)
     qDebug() << fs.availableGlslVersions();
 
     qDebug() << "[vertex] SPIR-V size" << vs.spirv().size();
+    qDebug() << "[vertex] Available variants for GLSL" << vs.availableGlslVersions();
     qDebug() << "[vertex] GLSL 1.00" << vs.glsl(100);
     qDebug() << "[vertex] GLSL 1.50" << vs.glsl(150);
     qDebug() << "[vertex] GLSL for default 2.0 format" << vs.glsl(fmt);
@@ -57,6 +58,7 @@ int main(int argc, char **argv)
     qDebug() << "\n";
 
     qDebug() << "[fragment] SPIR-V size" << fs.spirv().size();
+    qDebug() << "[fragment] Available variants for GLSL" << fs.availableGlslVersions();
     qDebug() << "[fragment] GLSL 1.00" << fs.glsl(100);
     qDebug() << "[fragment] GLSL 1.50" << fs.glsl(150);
     qDebug() << "[fragment] GLSL for default 2.0 format" << fs.glsl(fmt);

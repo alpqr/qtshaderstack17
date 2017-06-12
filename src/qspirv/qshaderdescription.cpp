@@ -173,10 +173,14 @@ QDebug operator<<(QDebug dbg, const QShaderDescription &sd)
     const QShaderDescriptionPrivate *d = sd.d;
     QDebugStateSaver saver(dbg);
 
-    dbg.nospace() << "QShaderDescription("
-                  << "inVars " << d->inVars
-                  << " outVars " << d->outVars
-                  << ')';
+    if (!sd.isNull()) {
+        dbg.nospace() << "QShaderDescription("
+                      << "inVars " << d->inVars
+                      << " outVars " << d->outVars
+                      << ')';
+    } else {
+        dbg.nospace() << "QShaderDescription(null)";
+    }
 
     return dbg;
 }
