@@ -135,3 +135,14 @@ Challenges
 
     Languages/APIs do not map 1:1. Think of traditional uniforms for
     instance, which do not exist in the same form in many APIs/languages.
+
+What Does This Module Provide?
+------------------------------
+
+  * qspirv: a library for the build and run-time steps outlined
+    above. The build time part is separate so that it can be used
+    independently by qsc.
+
+  * qsc: a host tool to perform SPIR-V processing, with the relevant
+    parts of qspirv compiled-in. Being a host tool it is suitable also
+    for cross-compilation and to be run by qmake/qbs.
