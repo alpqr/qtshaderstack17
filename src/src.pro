@@ -1,3 +1,2 @@
 TEMPLATE = subdirs
-CONFIG += ordered
-SUBDIRS = qspirv qsc
+SUBDIRS = qspirv tools
