@@ -234,14 +234,11 @@ void QSpirvPrivate::processResources()
         QJsonArray members;
         uint32_t idx = 0;
         for (uint32_t memberTypeId : t.member_types) {
-            // ### ignores a lot of things for now (arrays, decorations)
-            const QString memberName = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
-            const spirv_cross::SPIRType &memberType = glslGen->get_type(memberTypeId);
-            uint32_t offset = glslGen->type_struct_member_offset(t, idx);
             QJsonObject member;
-            member[QLatin1String("name")] = memberName;
-            member[QLatin1String("type")] = typeStr(memberType);
-            member[QLatin1String("offset")] = qint64(offset);
+            member[QLatin1String("name")] = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
+            member[QLatin1String("type")] = typeStr(glslGen->get_type(memberTypeId));
+            member[QLatin1String("offset")] = qint64(glslGen->type_struct_member_offset(t, idx));
+            // ### ignores a lot of things for now (arrays, decorations)
             members.append(member);
             ++idx;
         }
@@ -250,6 +247,26 @@ void QSpirvPrivate::processResources()
     }
     if (!uniformBuffers.isEmpty())
         root[QLatin1String("uniformBuffers")] = uniformBuffers;
+
+    QJsonArray pushConstantBlocks; // maps to a plain GLSL struct regardless of version
+    for (const spirv_cross::Resource &r : resources.push_constant_buffers) {
+        const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
+        QJsonObject pushConstantBlock;
+        pushConstantBlock[QLatin1String("name")] = QString::fromStdString(r.name);
+        QJsonArray members;
+        uint32_t idx = 0;
+        for (uint32_t memberTypeId : t.member_types) {
+            QJsonObject member;
+            member[QLatin1String("name")] = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
+            member[QLatin1String("type")] = typeStr(glslGen->get_type(memberTypeId));
+            members.append(member);
+            ++idx;
+        }
+        pushConstantBlock[QLatin1String("members")] = members;
+        pushConstantBlocks.append(pushConstantBlock);
+    }
+    if (!pushConstantBlocks.isEmpty())
+        root[QLatin1String("pushConstantBlocks")] = pushConstantBlocks;
 
     QJsonArray combinedSamplers;
     for (const spirv_cross::Resource &r : resources.sampled_images) {
