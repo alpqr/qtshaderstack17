@@ -1,8 +1,8 @@
-TARGET     = QtShaderStack
-QT         = core gui
+TARGET = QtShaderStack
 
 load(qt_module)
 
 DEFINES += QT_BUILD_SHADERSTACK_LIB
 
-include(qspirvprocess.pri)
+include(qspirvhost.pri)
+include(qspirvtarget.pri)
