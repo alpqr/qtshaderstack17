@@ -34,41 +34,66 @@
 **
 ****************************************************************************/
 
-#ifndef QSHADER_H
-#define QSHADER_H
+#ifndef QSHADERDESCRIPTION_H
+#define QSHADERDESCRIPTION_H
 
 #include <QtShaderStack/qtshaderstackglobal.h>
-#include <QtShaderStack/qshaderdescription.h>
 #include <QString>
-#include <QVector>
-#include <QSurfaceFormat>
 
 QT_BEGIN_NAMESPACE
 
-class QShaderPrivate;
+class QShaderDescriptionPrivate;
 
-class Q_SHADERSTACK_EXPORT QShader
+class Q_SHADERSTACK_EXPORT QShaderDescription
 {
 public:
-    QShader(const QString &filenamePrefix);
-    ~QShader();
+    QShaderDescription();
+    QShaderDescription(const QShaderDescription &other);
+    QShaderDescription &operator=(const QShaderDescription &other);
+    ~QShaderDescription();
+    void detach();
 
-    QByteArray spirv();
+    bool isNull() const;
 
-    QByteArray glsl(const QSurfaceFormat &format);
-    QVector<int> availableGlslVersions();
-    QByteArray glsl(int version);
+    enum VarType {
+        Unknown = 0,
+        Float,
+        Vec2,
+        Vec3,
+        Vec4,
+        Mat2,
+        Mat3,
+        Mat4,
+        Int,
+        Uint,
+        Bool,
+        Sampler2D,
+        Sampler3D,
+        SamplerCube
+    };
 
-    QByteArray hlsl();
+    struct InOutVariable {
+        QString name;
+        VarType type = Unknown;
+        int location = -1;
+        int binding = -1;
+    };
 
-    QByteArray msl();
-
-    QShaderDescription description();
+    QVector<InOutVariable> inputVariables() const;
+    QVector<InOutVariable> outputVariables() const;
 
 private:
-    Q_DISABLE_COPY(QShader)
-    QShaderPrivate *d = nullptr;
+    QShaderDescriptionPrivate *d;
+    friend class QShaderDescriptionPrivate;
+#ifndef QT_NO_DEBUG_STREAM
+    friend Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription &);
+#endif
 };
+
+#ifndef QT_NO_DEBUG_STREAM
+Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription &);
+Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription::InOutVariable &);
+#endif
 
 QT_END_NAMESPACE
 

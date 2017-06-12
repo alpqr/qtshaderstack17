@@ -34,40 +34,40 @@
 **
 ****************************************************************************/
 
-#ifndef QSHADER_H
-#define QSHADER_H
+#ifndef QSHADERDESCRIPTION_P_H
+#define QSHADERDESCRIPTION_P_H
 
-#include <QtShaderStack/qtshaderstackglobal.h>
-#include <QtShaderStack/qshaderdescription.h>
-#include <QString>
+#include "qshaderdescription.h"
 #include <QVector>
-#include <QSurfaceFormat>
+#include <QAtomicInt>
+#include <QJsonDocument>
 
 QT_BEGIN_NAMESPACE
 
-class QShaderPrivate;
-
-class Q_SHADERSTACK_EXPORT QShader
+struct QShaderDescriptionPrivate
 {
-public:
-    QShader(const QString &filenamePrefix);
-    ~QShader();
+    QShaderDescriptionPrivate()
+        : ref(1)
+    {
+    }
 
-    QByteArray spirv();
+    QShaderDescriptionPrivate(const QShaderDescriptionPrivate *other)
+        : ref(1),
+          doc(other->doc)
+    {
+    }
 
-    QByteArray glsl(const QSurfaceFormat &format);
-    QVector<int> availableGlslVersions();
-    QByteArray glsl(int version);
+    static QShaderDescriptionPrivate *get(QShaderDescription *desc) { return desc->d; }
+    void setDocument(const QJsonDocument &newDoc);
 
-    QByteArray hlsl();
+    QShaderDescription::InOutVariable makeInOutVar(const QJsonObject &obj);
+    QShaderDescription::VarType mapType(const QString &t);
 
-    QByteArray msl();
+    QAtomicInt ref;
+    QJsonDocument doc;
 
-    QShaderDescription description();
-
-private:
-    Q_DISABLE_COPY(QShader)
-    QShaderPrivate *d = nullptr;
+    QVector<QShaderDescription::InOutVariable> inVars;
+    QVector<QShaderDescription::InOutVariable> outVars;
 };
 
 QT_END_NAMESPACE

@@ -1,7 +1,10 @@
 QT *= gui
 
 HEADERS += \
-    qshader.h
+    qshader.h \
+    qshaderdescription.h \
+    qshaderdescription_p.h
 
 SOURCES += \
-    qshader.cpp
+    qshader.cpp \
+    qshaderdescription.cpp

@@ -35,6 +35,7 @@
 ****************************************************************************/
 
 #include "qshader.h"
+#include "qshaderdescription_p.h"
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
@@ -62,6 +63,9 @@ struct QShaderPrivate
 
     bool triedMsl = false;
     QByteArray msl;
+
+    bool triedRefl = false;
+    QShaderDescription shaderDesc;
 };
 
 QShaderPrivate::QShaderPrivate(const QString &filenamePrefix)
@@ -159,6 +163,25 @@ QByteArray QShader::msl()
         d->msl = d->loadBlob(".msl", true);
     }
     return d->msl;
+}
+
+QShaderDescription QShader::description()
+{
+    if (!d->triedRefl) {
+        d->triedRefl = true;
+        QByteArray binReflData = d->loadBlob(".refl");
+        if (!binReflData.isEmpty()) {
+            QJsonDocument doc = QJsonDocument::fromBinaryData(binReflData);
+            if (!doc.isNull()) {
+                d->shaderDesc.detach();
+                QShaderDescriptionPrivate::get(&d->shaderDesc)->setDocument(doc);
+            } else {
+                qWarning("Got null JSON document for %s; something went wrong", qPrintable(d->prefix));
+            }
+        }
+    }
+
+    return d->shaderDesc;
 }
 
 QT_END_NAMESPACE

@@ -50,12 +50,20 @@ int main(int argc, char **argv)
     qDebug() << "[vertex] GLSL 1.50" << vs.glsl(150);
     qDebug() << "[vertex] GLSL for default 2.0 format" << vs.glsl(fmt);
     qDebug() << "[vertex] GLSL for 3.2 core" << vs.glsl(coreFmt);
+    QShaderDescription sd = vs.description();
+    qDebug() << "[vertex] reflection data?" << !sd.isNull();
+    qDebug() << "[vertex] reflection data" << sd;
+
+    qDebug() << "\n";
 
     qDebug() << "[fragment] SPIR-V size" << fs.spirv().size();
     qDebug() << "[fragment] GLSL 1.00" << fs.glsl(100);
     qDebug() << "[fragment] GLSL 1.50" << fs.glsl(150);
     qDebug() << "[fragment] GLSL for default 2.0 format" << fs.glsl(fmt);
     qDebug() << "[fragment] GLSL for 3.2 core" << fs.glsl(coreFmt);
+    sd = fs.description();
+    qDebug() << "[fragment] reflection data?" << !sd.isNull();
+    qDebug() << "[fragment] reflection data" << sd;
 
     return 0;
 }
