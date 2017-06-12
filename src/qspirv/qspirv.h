@@ -38,13 +38,41 @@
 #define QSPIRV_H
 
 #include <QtShaderStack/qtshaderstackglobal.h>
+#include <QtCore/qstring.h>
 
 QT_BEGIN_NAMESPACE
+
+class QIODevice;
+class QSpirvPrivate;
 
 class Q_SHADERSTACK_EXPORT QSpirv
 {
 public:
+    enum GlslFlag {
+        GlslEs = 0x01,
+        FixClipSpace = 0x02,
+        FragDefaultMediump = 0x04
+    };
+    Q_DECLARE_FLAGS(GlslFlags, GlslFlag)
+
+    QSpirv(const QString &filename);
+    QSpirv(QIODevice *device);
+    ~QSpirv();
+
+    bool isValid() const;
+    QByteArray reflectionBinaryJson() const;
+    QByteArray reflectionJson() const;
+
+    QByteArray translateToGLSL(int version = 100, GlslFlags flags = GlslEs);
+    QByteArray translateToHLSL();
+    QByteArray translateToMSL();
+
+private:
+    Q_DISABLE_COPY(QSpirv)
+    QSpirvPrivate *d = nullptr;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(QSpirv::GlslFlags)
 
 QT_END_NAMESPACE
 

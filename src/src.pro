@@ -1,2 +1,2 @@
 TEMPLATE = subdirs
-SUBDIRS = qspirv tools
+SUBDIRS = qspirv

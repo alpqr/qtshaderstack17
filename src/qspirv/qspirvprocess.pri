@@ -5,7 +5,8 @@ HEADERS += \
 SOURCES += \
     $$PWD/qspirv.cpp
 
-INCLUDEPATH += $$PWD/../3rdparty/SPIRV-Cross
+INCLUDEPATH += $$PWD $$PWD/../3rdparty/SPIRV-Cross
+
 SOURCES += \
     $$PWD/../3rdparty/SPIRV-Cross/spirv_cross.cpp \
     $$PWD/../3rdparty/SPIRV-Cross/spirv_cfg.cpp \
