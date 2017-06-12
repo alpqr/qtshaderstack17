@@ -35,6 +35,10 @@
 ****************************************************************************/
 
 #include "qshader.h"
+#include <QFile>
+#include <QFileInfo>
+#include <QDir>
+#include <QHash>
 
 QT_BEGIN_NAMESPACE
 
@@ -42,7 +46,22 @@ struct QShaderPrivate
 {
     QShaderPrivate(const QString &filenamePrefix);
 
+    QByteArray loadBlob(const char *suffix, bool text = false);
+
     QString prefix;
+
+    bool triedSpirv = false;
+    QByteArray spirv;
+
+    bool triedGlsl = false;
+    QVector<int> glslVersions;
+    QHash<int, QByteArray> glsl;
+
+    bool triedHlsl = false;
+    QByteArray hlsl;
+
+    bool triedMsl = false;
+    QByteArray msl;
 };
 
 QShaderPrivate::QShaderPrivate(const QString &filenamePrefix)
@@ -57,6 +76,17 @@ QShaderPrivate::QShaderPrivate(const QString &filenamePrefix)
     */
 }
 
+QByteArray QShaderPrivate::loadBlob(const char *suffix, bool text)
+{
+    QFile f(prefix + QString::fromUtf8(suffix));
+    QIODevice::OpenMode openMode = QIODevice::ReadOnly;
+    if (text)
+        openMode |= QIODevice::Text;
+    if (!f.open(openMode))
+        return QByteArray();
+    return f.readAll();
+}
+
 QShader::QShader(const QString &filenamePrefix)
     : d(new QShaderPrivate(filenamePrefix))
 {
@@ -65,6 +95,70 @@ QShader::QShader(const QString &filenamePrefix)
 QShader::~QShader()
 {
     delete d;
+}
+
+QByteArray QShader::spirv()
+{
+    if (!d->triedSpirv) {
+        d->triedSpirv = true;
+        d->spirv = d->loadBlob(".spv");
+    }
+    return d->spirv;
+}
+
+QByteArray QShader::glsl(const QSurfaceFormat &format)
+{
+    // ### mapping to 100 is not always correct, shaders using gl_PointCoord need 120 for instance
+    return glsl(format.profile() == QSurfaceFormat::CoreProfile ? 150 : 100);
+}
+
+QVector<int> QShader::availableGlslVersions()
+{
+    if (!d->triedGlsl) {
+        d->triedGlsl = true;
+        QFileInfo fi(d->prefix);
+        QDir dir(fi.canonicalPath());
+        QStringList files = dir.entryList({ fi.fileName() + QLatin1String(".glsl*") });
+        for (const QString &fn : files) {
+            bool ok = false;
+            int v = fn.right(3).toInt(&ok);
+            if (ok)
+                d->glslVersions.append(v);
+        }
+    }
+    return d->glslVersions;
+}
+
+QByteArray QShader::glsl(int version)
+{
+    if (!availableGlslVersions().contains(version))
+        return QByteArray();
+
+    if (!d->glsl.contains(version)) {
+        QByteArray suffix = QByteArrayLiteral(".glsl");
+        suffix.append(QByteArray::number(version));
+        d->glsl[version] = d->loadBlob(suffix.constData(), true);
+    }
+
+    return d->glsl[version];
+}
+
+QByteArray QShader::hlsl()
+{
+    if (!d->triedHlsl) {
+        d->triedHlsl = true;
+        d->hlsl = d->loadBlob(".hlsl", true);
+    }
+    return d->hlsl;
+}
+
+QByteArray QShader::msl()
+{
+    if (!d->triedMsl) {
+        d->triedMsl = true;
+        d->msl = d->loadBlob(".msl", true);
+    }
+    return d->msl;
 }
 
 QT_END_NAMESPACE

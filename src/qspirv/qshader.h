@@ -39,6 +39,8 @@
 
 #include <QtShaderStack/qtshaderstackglobal.h>
 #include <QString>
+#include <QVector>
+#include <QSurfaceFormat>
 
 QT_BEGIN_NAMESPACE
 
@@ -49,6 +51,16 @@ class Q_SHADERSTACK_EXPORT QShader
 public:
     QShader(const QString &filenamePrefix);
     ~QShader();
+
+    QByteArray spirv();
+
+    QByteArray glsl(const QSurfaceFormat &format);
+    QVector<int> availableGlslVersions();
+    QByteArray glsl(int version);
+
+    QByteArray hlsl();
+
+    QByteArray msl();
 
 private:
     Q_DISABLE_COPY(QShader)

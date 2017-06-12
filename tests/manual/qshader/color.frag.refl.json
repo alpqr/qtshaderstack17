@@ -1,0 +1,16 @@
+{
+    "inputs": [
+        {
+            "location": 0,
+            "name": "v_color",
+            "type": "vec3"
+        }
+    ],
+    "outputs": [
+        {
+            "location": 0,
+            "name": "fragColor",
+            "type": "vec4"
+        }
+    ]
+}

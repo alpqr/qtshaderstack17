@@ -1,0 +1,33 @@
+{
+    "inputs": [
+        {
+            "location": 1,
+            "name": "color",
+            "type": "vec3"
+        },
+        {
+            "location": 0,
+            "name": "position",
+            "type": "vec4"
+        }
+    ],
+    "outputs": [
+        {
+            "location": 0,
+            "name": "v_color",
+            "type": "vec3"
+        }
+    ],
+    "uniformBuffers": [
+        {
+            "members": [
+                {
+                    "name": "mvp",
+                    "offset": 0,
+                    "type": "mat4"
+                }
+            ],
+            "name": "buf"
+        }
+    ]
+}
