@@ -30,11 +30,10 @@ QShader fs(QLatin1String(":/color.frag"));
 qDebug() << vs.availableGlslVersions();
 qDebug() << fs.availableGlslVersions();
 
-QSurfaceFormat coreFmt;
-coreFmt.setVersion(3, 2);
-coreFmt.setProfile(QSurfaceFormat::CoreProfile);
+QSurfaceFormat fmt;
+...
 
-QByteArray vertexShaderSource = vs.glsl(coreFmt); // by defaults picks the version 150 variant
+QByteArray vertexShaderSource = vs.glsl(fmt); // picks 100 or 150 variant depending on profile by default
 
 QByteArray shaderBlob = vs.spirv(); // can be passed as-is to Vulkan
 
