@@ -301,6 +301,11 @@ QByteArray QSpirv::reflectionJson() const
 
 QByteArray QSpirv::translateToGLSL(int version, GlslFlags flags)
 {
+    // create a new instance since options handling seem to be problematic
+    // (won't pick up new options on the second and subsequent compile())
+    delete d->glslGen;
+    d->glslGen = new spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t *>(d->ir.constData()), d->ir.size() / 4);
+
     spirv_cross::CompilerGLSL::Options options;
     options.version = version;
     options.es = flags.testFlag(GlslEs);
