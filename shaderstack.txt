@@ -142,6 +142,8 @@ Challenges
     buffers (300+). In general the input will have to be Vulkan-flavor
     GLSL to make all target APIs happy.
 
+  * Potential small differences: Y direction, clip space, ...
+
 So What Does This Module Provide?
 ---------------------------------
 

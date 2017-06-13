@@ -95,10 +95,27 @@ QVector<QShaderDescription::InOutVariable> QShaderDescription::outputVariables()
     return d->outVars;
 }
 
+QVector<QShaderDescription::UniformBlock> QShaderDescription::uniformBlocks() const
+{
+    return d->uniformBlocks;
+}
+
+QVector<QShaderDescription::PushConstantBlock> QShaderDescription::pushConstantBlocks() const
+{
+    return d->pushConstantBlocks;
+}
+
+QVector<QShaderDescription::InOutVariable> QShaderDescription::combinedImageSamplers() const
+{
+    return d->combinedImageSamplers;
+}
+
 static const QString nameKey = QLatin1String("name");
 static const QString typeKey = QLatin1String("type");
 static const QString locationKey = QLatin1String("location");
 static const QString bindingKey = QLatin1String("binding");
+static const QString offsetKey = QLatin1String("offset");
+static const QString membersKey = QLatin1String("members");
 
 QShaderDescription::InOutVariable QShaderDescriptionPrivate::makeInOutVar(const QJsonObject &obj)
 {
@@ -112,12 +129,25 @@ QShaderDescription::InOutVariable QShaderDescriptionPrivate::makeInOutVar(const 
     return var;
 }
 
+QShaderDescription::BlockVariable QShaderDescriptionPrivate::makeBlockVar(const QJsonObject &obj)
+{
+    QShaderDescription::BlockVariable var;
+    var.name = obj[nameKey].toString();
+    var.type = mapType(obj[typeKey].toString());
+    if (obj.contains(offsetKey))
+        var.offset = obj[offsetKey].toInt();
+    return var;
+}
+
 void QShaderDescriptionPrivate::setDocument(const QJsonDocument &newDoc)
 {
     Q_ASSERT(ref.load() == 1);
 
     inVars.clear();
     outVars.clear();
+    uniformBlocks.clear();
+    pushConstantBlocks.clear();
+    combinedImageSamplers.clear();
 
     doc = newDoc;
     if (doc.isNull())
@@ -137,6 +167,41 @@ void QShaderDescriptionPrivate::setDocument(const QJsonDocument &newDoc)
         QJsonArray outputs = root[outputsKey].toArray();
         for (int i = 0; i < outputs.count(); ++i)
             outVars.append(makeInOutVar(outputs[i].toObject()));
+    }
+
+    const QString uniformBlocksKey = QLatin1String("uniformBuffers");
+    if (root.contains(uniformBlocksKey)) {
+        QJsonArray ubs = root[uniformBlocksKey].toArray();
+        for (int i = 0; i < ubs.count(); ++i) {
+            QJsonObject ubObj = ubs[i].toObject();
+            QShaderDescription::UniformBlock ub;
+            ub.name = ubObj[nameKey].toString();
+            QJsonArray members = ubObj[membersKey].toArray();
+            for (const QJsonValue &member : members)
+                ub.members.append(makeBlockVar(member.toObject()));
+            uniformBlocks.append(ub);
+        }
+    }
+
+    const QString pcKey = QLatin1String("pushConstantBlocks");
+    if (root.contains(pcKey)) {
+        QJsonArray pcs = root[pcKey].toArray();
+        for (int i = 0; i < pcs.count(); ++i) {
+            QJsonObject pcObj = pcs[i].toObject();
+            QShaderDescription::PushConstantBlock pc;
+            pc.name = pcObj[nameKey].toString();
+            QJsonArray members = pcObj[membersKey].toArray();
+            for (const QJsonValue &member : members)
+                pc.members.append(makeBlockVar(member.toObject()));
+            pushConstantBlocks.append(pc);
+        }
+    }
+
+    const QString combinedImageSamplersKey = QLatin1String("combinedImageSamplers");
+    if (root.contains(combinedImageSamplersKey)) {
+        QJsonArray samplers = root[combinedImageSamplersKey].toArray();
+        for (int i = 0; i < samplers.count(); ++i)
+            combinedImageSamplers.append(makeInOutVar(samplers[i].toObject()));
     }
 }
 
@@ -177,6 +242,9 @@ QDebug operator<<(QDebug dbg, const QShaderDescription &sd)
         dbg.nospace() << "QShaderDescription("
                       << "inVars " << d->inVars
                       << " outVars " << d->outVars
+                      << " uniformBlocks " << d->uniformBlocks
+                      << " pcBlocks " << d->pushConstantBlocks
+                      << " samplers " << d->combinedImageSamplers
                       << ')';
     } else {
         dbg.nospace() << "QShaderDescription(null)";
@@ -228,6 +296,28 @@ QDebug operator<<(QDebug dbg, const QShaderDescription::InOutVariable &var)
     if (var.binding >= 0)
         dbg.nospace() << " binding=" << var.binding;
     dbg.nospace() << ')';
+    return dbg;
+}
+
+QDebug operator<<(QDebug dbg, const QShaderDescription::BlockVariable &var)
+{
+    QDebugStateSaver saver(dbg);
+    dbg.nospace() << "BlockVariable(" << dbgTypeStr(var.type) << ' ' << var.name
+                  << " offset=" << var.offset << ')';
+    return dbg;
+}
+
+QDebug operator<<(QDebug dbg, const QShaderDescription::UniformBlock &blk)
+{
+    QDebugStateSaver saver(dbg);
+    dbg.nospace() << "UniformBlock(" << blk.name << ' ' << blk.members << ')';
+    return dbg;
+}
+
+QDebug operator<<(QDebug dbg, const QShaderDescription::PushConstantBlock &blk)
+{
+    QDebugStateSaver saver(dbg);
+    dbg.nospace() << "PushConstantBlock(" << blk.name << ' ' << blk.members << ')';
     return dbg;
 }
 #endif

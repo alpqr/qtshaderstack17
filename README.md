@@ -24,7 +24,7 @@ It's not hard to see where this is going. Once qsc generated the stuff at build
 time, we can include it in the resource system and do things like:
 
 ```
-QShader vs(QLatin1String(":/color.vert")); // just the common prefix
+QShader vs(QLatin1String(":/color.vert")); // just the common prefix (this file itself does not actually exist), qrc works too
 QShader fs(QLatin1String(":/color.frag"));
 
 qDebug() << vs.availableGlslVersions();
@@ -37,6 +37,10 @@ QByteArray vertexShaderSource = vs.glsl(fmt); // picks 100 or 150 variant depend
 
 QByteArray shaderBlob = vs.spirv(); // can be passed as-is to Vulkan
 
-QShaderDescription desc = vs.description(); // reflection: in/out vars, uniform blocks, ...
-
+QShaderDescription desc = vs.description(); // reflection: in/out vars, uniform blocks, samplers, ...
+for (auto ub : desc.uniformBlocks()) {
+    // ub.name()
+    for (auto var : ub.members())
+        // var.name(), var.type(), var.offset(), ...
+}
 ```

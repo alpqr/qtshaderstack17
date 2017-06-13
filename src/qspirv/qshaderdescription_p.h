@@ -61,6 +61,7 @@ struct QShaderDescriptionPrivate
     void setDocument(const QJsonDocument &newDoc);
 
     QShaderDescription::InOutVariable makeInOutVar(const QJsonObject &obj);
+    QShaderDescription::BlockVariable makeBlockVar(const QJsonObject &obj);
     QShaderDescription::VarType mapType(const QString &t);
 
     QAtomicInt ref;
@@ -68,6 +69,9 @@ struct QShaderDescriptionPrivate
 
     QVector<QShaderDescription::InOutVariable> inVars;
     QVector<QShaderDescription::InOutVariable> outVars;
+    QVector<QShaderDescription::UniformBlock> uniformBlocks;
+    QVector<QShaderDescription::PushConstantBlock> pushConstantBlocks;
+    QVector<QShaderDescription::InOutVariable> combinedImageSamplers;
 };
 
 QT_END_NAMESPACE

@@ -39,6 +39,7 @@
 
 #include <QtShaderStack/qtshaderstackglobal.h>
 #include <QString>
+#include <QVector>
 
 QT_BEGIN_NAMESPACE
 
@@ -79,8 +80,27 @@ public:
         int binding = -1;
     };
 
+    struct BlockVariable {
+        QString name;
+        VarType type = Unknown;
+        int offset = 0;
+    };
+
+    struct UniformBlock {
+        QString name;
+        QVector<BlockVariable> members;
+    };
+
+    struct PushConstantBlock {
+        QString name;
+        QVector<BlockVariable> members;
+    };
+
     QVector<InOutVariable> inputVariables() const;
     QVector<InOutVariable> outputVariables() const;
+    QVector<UniformBlock> uniformBlocks() const;
+    QVector<PushConstantBlock> pushConstantBlocks() const;
+    QVector<InOutVariable> combinedImageSamplers() const;
 
 private:
     QShaderDescriptionPrivate *d;
@@ -93,6 +113,9 @@ private:
 #ifndef QT_NO_DEBUG_STREAM
 Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription &);
 Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription::InOutVariable &);
+Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription::BlockVariable &);
+Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription::UniformBlock &);
+Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription::PushConstantBlock &);
 #endif
 
 QT_END_NAMESPACE
