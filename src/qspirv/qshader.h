@@ -45,7 +45,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class QShaderPrivate;
+struct QShaderPrivate;
 
 class Q_SHADERSTACK_EXPORT QShader
 {

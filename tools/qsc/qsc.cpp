@@ -71,12 +71,12 @@ static QString compile(const QString &fn)
     if (!glslc.waitForFinished())
         return QString();
 
-    QByteArray stdout = glslc.readAllStandardOutput();
-    QByteArray stderr = glslc.readAllStandardError();
-    if (!stdout.isEmpty())
-        qDebug("%s", stdout.constData());
-    if (!stderr.isEmpty())
-        qDebug("%s", stderr.constData());
+    QByteArray outstr = glslc.readAllStandardOutput();
+    QByteArray errstr = glslc.readAllStandardError();
+    if (!outstr.isEmpty())
+        qDebug("%s", outstr.constData());
+    if (!errstr.isEmpty())
+        qDebug("%s", errstr.constData());
 
     return spvName;
 }

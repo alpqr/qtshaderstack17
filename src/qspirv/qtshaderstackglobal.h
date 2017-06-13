@@ -42,7 +42,7 @@
 QT_BEGIN_NAMESPACE
 
 #ifndef Q_SHADERSTACK_EXPORT
-#  ifndef QT_STATIC
+#  if !defined(QT_STATIC) && !defined(QT_SHADERSTACK_BUILTIN)
 #    if defined(QT_BUILD_SHADERSTACK_LIB)
 #      define Q_SHADERSTACK_EXPORT Q_DECL_EXPORT
 #    else

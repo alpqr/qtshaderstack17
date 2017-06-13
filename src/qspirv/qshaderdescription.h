@@ -43,7 +43,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class QShaderDescriptionPrivate;
+struct QShaderDescriptionPrivate;
 
 class Q_SHADERSTACK_EXPORT QShaderDescription
 {
@@ -105,7 +105,7 @@ public:
 
 private:
     QShaderDescriptionPrivate *d;
-    friend class QShaderDescriptionPrivate;
+    friend struct QShaderDescriptionPrivate;
 #ifndef QT_NO_DEBUG_STREAM
     friend Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription &);
 #endif

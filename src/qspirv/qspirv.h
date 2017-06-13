@@ -43,7 +43,7 @@
 QT_BEGIN_NAMESPACE
 
 class QIODevice;
-class QSpirvPrivate;
+struct QSpirvPrivate;
 
 class Q_SHADERSTACK_EXPORT QSpirv
 {

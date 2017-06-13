@@ -16,3 +16,5 @@ SOURCES += \
     $$PWD/../3rdparty/SPIRV-Cross/spirv_hlsl.cpp
 
 CONFIG += exceptions
+
+win32-msvc: QMAKE_CXXFLAGS += /wd4800
