@@ -5,7 +5,7 @@ Built on top of https://github.com/KhronosGroup/SPIRV-Cross
 
 Note: expects SPIRV-Cross to be checked out under src/3rdparty
 
-See shaderstack.txt for vision and motivation.
+See https://github.com/alpqr/qtshaderstack17/blob/master/shaderstack.txt for vision and motivation.
 
 All APIs are WIP. To manually run qsc, glslc needs to be in the PATH.
 Alternatively, set QT_GLSLC, for example: export QT_GLSLC=~/android-ndk-r13b/shader-tools/linux-x86_64/glslc
