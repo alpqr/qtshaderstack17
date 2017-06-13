@@ -87,7 +87,8 @@ public:
     };
 
     struct UniformBlock {
-        QString name;
+        QString blockName;
+        QString structName;
         QVector<BlockVariable> members;
     };
 

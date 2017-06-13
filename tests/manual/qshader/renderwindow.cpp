@@ -53,7 +53,7 @@
 #include <QMatrix4x4>
 #include <QOpenGLContext>
 #include <QOpenGLShaderProgram>
-#include <QOpenGLFunctions>
+#include <QOpenGLExtraFunctions>
 
 #include <QtShaderStack/QShader>
 
@@ -96,11 +96,14 @@ void RenderWindow::init()
 
     QSurfaceFormat format = m_context->format();
 
-    if (!m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, m_vs->glsl(format))) {
+    QShader::GlslVersion vsv = m_vs->glslVersionForFormat(format);
+    QShader::GlslVersion fsv = m_fs->glslVersionForFormat(format);
+
+    if (!m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, m_vs->glsl(vsv))) {
         emit error(m_program->log());
         return;
     }
-    if (!m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, m_fs->glsl(format))) {
+    if (!m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, m_fs->glsl(fsv))) {
         emit error(m_program->log());
         return;
     }
@@ -111,7 +114,23 @@ void RenderWindow::init()
 
     m_posAttr = m_program->attributeLocation("position");
     m_colAttr = m_program->attributeLocation("color");
-    m_matrixUniform = m_program->uniformLocation("matrix");
+
+    // ### maybe move this to a helper api?
+    if (vsv.version >= 140) {
+        // use a true uniform buffer
+        QOpenGLExtraFunctions *f = m_context->extraFunctions();
+        const QString bname = m_vs->description().uniformBlocks()[0].blockName;
+        GLuint blockIdx = f->glGetUniformBlockIndex(m_program->programId(), bname.toUtf8().constData());
+        if (blockIdx == GL_INVALID_INDEX)
+            qWarning("uniform block %s not found?!", qPrintable(bname));
+        f->glUniformBlockBinding(m_program->programId(), blockIdx, 0);
+        f->glGenBuffers(1, &m_ubo);
+        f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
+    } else {
+        // without uniform block support we have a mere struct
+        const QString uniName = m_vs->description().uniformBlocks()[0].structName + QLatin1String(".mvp");
+        m_matrixUniform = m_program->uniformLocation(uniName);
+    }
 
     m_vbo.create();
     m_vbo.bind();
@@ -141,7 +160,7 @@ void RenderWindow::render()
         return;
     }
 
-    QOpenGLFunctions *f = m_context->functions();
+    QOpenGLExtraFunctions *f = m_context->extraFunctions();
     if (!m_initialized) {
         m_initialized = true;
         f->glEnable(GL_DEPTH_TEST);
@@ -162,12 +181,17 @@ void RenderWindow::render()
     matrix.perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
     matrix.translate(0.0f, 0.0f, -2.0f);
     matrix.rotate(m_angle, 0.0f, 1.0f, 0.0f);
-    m_program->setUniformValue(m_matrixUniform, matrix);
 
     if (m_vao.isCreated())
         m_vao.bind();
     else
         setupVertexAttribs();
+
+    if (m_ubo) {
+        f->glBufferData(GL_UNIFORM_BUFFER, 64, matrix.constData(), GL_DYNAMIC_DRAW);
+    } else {
+        m_program->setUniformValue(m_matrixUniform, matrix);
+    }
 
     f->glDrawArrays(GL_TRIANGLES, 0, 3);
 

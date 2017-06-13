@@ -17,7 +17,7 @@ For instance, going to test/playground and running "qsc color_phong.frag" result
  * color_phong.frag.refl -> binary JSON version (binary, to be deployed/loaded at runtime)
  * color_phong.frag.glsl100es -> SPIRV-Cross' translation to GLSL ES 100
  * color_phong.frag.glsl120 -> SPIRV-Cross' translation to GLSL 120
- * color_phong.frag.glsl150 -> SPIRV-Cross' translation to GLSL 150
+ * color_phong.frag.glsl330 -> SPIRV-Cross' translation to GLSL 330
 
 See qsc --help for configuration options.
 

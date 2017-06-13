@@ -20,6 +20,7 @@
     ],
     "uniformBuffers": [
         {
+            "blockName": "buf",
             "members": [
                 {
                     "name": "mvp",
@@ -27,7 +28,7 @@
                     "type": "mat4"
                 }
             ],
-            "name": "buf"
+            "structName": "ubuf"
         }
     ]
 }

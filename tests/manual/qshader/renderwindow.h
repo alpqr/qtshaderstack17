@@ -88,6 +88,7 @@ private:
     QOpenGLVertexArrayObject m_vao;
     QOpenGLBuffer m_vbo;
     float m_angle;
+    GLuint m_ubo = 0;
 };
 
 #endif // RENDERWINDOW_H

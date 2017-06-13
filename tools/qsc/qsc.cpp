@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     cmdLineParser.addHelpOption();
     cmdLineParser.addPositionalArgument(QLatin1String("file"), QObject::tr("Shader to compile. Extension must be .vert, .frag, etc."), QObject::tr("files..."));
     QCommandLineOption versionOption(QStringList() << "n" << "versions",
-                                     QObject::tr("Comma-separated list of output GLSL versions (e.g. 100 es, 120, 300 es, 330, etc.). Defaults to \"100 es,120,150\". Set to \"\" to disable GLSL."),
+                                     QObject::tr("Comma-separated list of output GLSL versions (e.g. 100 es, 120, 300 es, 330, etc.). Defaults to \"100 es,120,330\". Set to \"\" to disable GLSL."),
                                      QObject::tr("version"));
     cmdLineParser.addOption(versionOption);
     QCommandLineOption clipSpaceOption(QStringList() << "c" << "fix-clipspace", QObject::tr("Fix up depth [0, w] -> [-w, w]"));
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
             bool es = false;
         };
         QVector<GLSLVersion> versions;
-        QString versionStr = QLatin1String("100 es,120,150");
+        QString versionStr = QLatin1String("100 es,120,330");
         if (cmdLineParser.isSet(versionOption))
             versionStr = cmdLineParser.value(versionOption);
 

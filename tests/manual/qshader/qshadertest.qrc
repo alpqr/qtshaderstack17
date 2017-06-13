@@ -4,11 +4,11 @@
     <file>color.vert.refl</file>
     <file>color.vert.glsl100es</file>
     <file>color.vert.glsl120</file>
-    <file>color.vert.glsl150</file>
+    <file>color.vert.glsl330</file>
     <file>color.frag.spv</file>
     <file>color.frag.refl</file>
     <file>color.frag.glsl100es</file>
     <file>color.frag.glsl120</file>
-    <file>color.frag.glsl150</file>
+    <file>color.frag.glsl330</file>
 </qresource>
 </RCC>

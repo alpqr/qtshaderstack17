@@ -2,6 +2,9 @@
 #ifdef GL_ARB_shading_language_420pack
 #extension GL_ARB_shading_language_420pack : require
 #endif
+#ifdef GL_ARB_separate_shader_objects
+#extension GL_ARB_separate_shader_objects : require
+#endif
 
 varying vec3 v_color;
 

@@ -171,11 +171,14 @@ void QShaderDescriptionPrivate::setDocument(const QJsonDocument &newDoc)
 
     const QString uniformBlocksKey = QLatin1String("uniformBuffers");
     if (root.contains(uniformBlocksKey)) {
+        const QString blockNameKey = QLatin1String("blockName");
+        const QString structNameKey = QLatin1String("structName");
         QJsonArray ubs = root[uniformBlocksKey].toArray();
         for (int i = 0; i < ubs.count(); ++i) {
             QJsonObject ubObj = ubs[i].toObject();
             QShaderDescription::UniformBlock ub;
-            ub.name = ubObj[nameKey].toString();
+            ub.blockName = ubObj[blockNameKey].toString();
+            ub.structName = ubObj[structNameKey].toString();
             QJsonArray members = ubObj[membersKey].toArray();
             for (const QJsonValue &member : members)
                 ub.members.append(makeBlockVar(member.toObject()));
@@ -310,7 +313,7 @@ QDebug operator<<(QDebug dbg, const QShaderDescription::BlockVariable &var)
 QDebug operator<<(QDebug dbg, const QShaderDescription::UniformBlock &blk)
 {
     QDebugStateSaver saver(dbg);
-    dbg.nospace() << "UniformBlock(" << blk.name << ' ' << blk.members << ')';
+    dbg.nospace() << "UniformBlock(" << blk.blockName << ' ' << blk.structName << ' ' << blk.members << ')';
     return dbg;
 }
 

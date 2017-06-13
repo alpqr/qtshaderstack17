@@ -55,8 +55,6 @@ public:
 
     QByteArray spirv();
 
-    QByteArray glsl(const QSurfaceFormat &format);
-
     struct GlslVersion {
         GlslVersion() { }
         GlslVersion(int v, bool e) : version(v), es(e) { }
@@ -66,6 +64,7 @@ public:
 
     QVector<GlslVersion> availableGlslVersions();
     QByteArray glsl(const GlslVersion &version);
+    GlslVersion glslVersionForFormat(const QSurfaceFormat &format);
 
     QByteArray hlsl();
 

@@ -230,7 +230,8 @@ void QSpirvPrivate::processResources()
     for (const spirv_cross::Resource &r : resources.uniform_buffers) {
         const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
         QJsonObject uniformBuffer;
-        uniformBuffer[QLatin1String("name")] = QString::fromStdString(r.name);
+        uniformBuffer[QLatin1String("blockName")] = QString::fromStdString(r.name);
+        uniformBuffer[QLatin1String("structName")] = QString::fromStdString(glslGen->get_name(r.id));
         QJsonArray members;
         uint32_t idx = 0;
         for (uint32_t memberTypeId : t.member_types) {
@@ -252,7 +253,7 @@ void QSpirvPrivate::processResources()
     for (const spirv_cross::Resource &r : resources.push_constant_buffers) {
         const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
         QJsonObject pushConstantBlock;
-        pushConstantBlock[QLatin1String("name")] = QString::fromStdString(r.name);
+        pushConstantBlock[QLatin1String("name")] = QString::fromStdString(glslGen->get_name(r.id));
         QJsonArray members;
         uint32_t idx = 0;
         for (uint32_t memberTypeId : t.member_types) {
@@ -311,7 +312,19 @@ QByteArray QSpirv::translateToGLSL(int version, GlslFlags flags)
 
     const std::string glsl = d->glslGen->compile();
 
-    return QByteArray::fromStdString(glsl);
+    QByteArray src = QByteArray::fromStdString(glsl);
+
+    // Fix it up by adding #extension GL_ARB_separate_shader_objects : require
+    // as well in order to make Mesa and perhaps others happy.
+    const QByteArray searchStr = QByteArrayLiteral("#extension GL_ARB_shading_language_420pack : require\n#endif\n");
+    int pos = src.indexOf(searchStr);
+    if (pos >= 0) {
+        src.insert(pos + searchStr.count(), QByteArrayLiteral("#ifdef GL_ARB_separate_shader_objects\n"
+                                                              "#extension GL_ARB_separate_shader_objects : require\n"
+                                                              "#endif\n"));
+    }
+
+    return src;
 }
 
 QByteArray QSpirv::translateToHLSL()

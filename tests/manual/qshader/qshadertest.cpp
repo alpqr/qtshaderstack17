@@ -41,13 +41,13 @@ int main(int argc, char **argv)
 
     QSurfaceFormat fmt;
     QSurfaceFormat coreFmt;
-    coreFmt.setVersion(3, 2);
+    coreFmt.setVersion(3, 3);
     coreFmt.setProfile(QSurfaceFormat::CoreProfile);
 
     qDebug() << "[vertex] SPIR-V size" << vs.spirv().size();
     qDebug() << "[vertex] Available variants for GLSL" << vs.availableGlslVersions();
-    qDebug() << "[vertex] GLSL for default 2.0 format" << vs.glsl(fmt);
-    qDebug() << "[vertex] GLSL for 3.2 core" << vs.glsl(coreFmt);
+    qDebug() << "[vertex] GLSL for default 2.0 format" << vs.glsl(vs.glslVersionForFormat(fmt));
+    qDebug() << "[vertex] GLSL for 3.3 core" << vs.glsl(vs.glslVersionForFormat(coreFmt));
     QShaderDescription sd = vs.description();
     qDebug() << "[vertex] reflection data?" << !sd.isNull();
     qDebug() << "[vertex] reflection data" << sd;
@@ -56,8 +56,8 @@ int main(int argc, char **argv)
 
     qDebug() << "[fragment] SPIR-V size" << fs.spirv().size();
     qDebug() << "[fragment] Available variants for GLSL" << fs.availableGlslVersions();
-    qDebug() << "[fragment] GLSL for default 2.0 format" << fs.glsl(fmt);
-    qDebug() << "[fragment] GLSL for 3.2 core" << fs.glsl(coreFmt);
+    qDebug() << "[fragment] GLSL for default 2.0 format" << fs.glsl(vs.glslVersionForFormat(fmt));
+    qDebug() << "[fragment] GLSL for 3.3 core" << fs.glsl(vs.glslVersionForFormat(coreFmt));
     sd = fs.description();
     qDebug() << "[fragment] reflection data?" << !sd.isNull();
     qDebug() << "[fragment] reflection data" << sd;
@@ -65,6 +65,10 @@ int main(int argc, char **argv)
     RenderWindow w(&vs, &fs, fmt);
     w.resize(1024, 768);
     w.show();
+
+    RenderWindow cw(&vs, &fs, coreFmt);
+    cw.resize(1024, 768);
+    cw.show();
 
     return app.exec();
 }

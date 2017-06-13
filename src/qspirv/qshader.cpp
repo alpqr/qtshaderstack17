@@ -111,23 +111,6 @@ QByteArray QShader::spirv()
     return d->spirv;
 }
 
-QByteArray QShader::glsl(const QSurfaceFormat &format)
-{
-    // < 3.2 and non-core should default to 120.
-    // >=3.2 core profile -> 150.
-    // 100 ES is only suitable for ES due to default precision statements that break QOpenGLShaderProgram.
-
-    GlslVersion v;
-    if (format.profile() == QSurfaceFormat::CoreProfile)
-        v = GlslVersion(150, false);
-    else if (format.renderableType() == QSurfaceFormat::OpenGLES)
-        v = GlslVersion(100, true);
-    else
-        v = GlslVersion(120, false);
-
-    return glsl(v);
-}
-
 QVector<QShader::GlslVersion> QShader::availableGlslVersions()
 {
     if (!d->triedGlsl) {
@@ -162,6 +145,23 @@ QByteArray QShader::glsl(const GlslVersion &version)
     }
 
     return d->glsl[version];
+}
+
+QShader::GlslVersion QShader::glslVersionForFormat(const QSurfaceFormat &format)
+{
+    // < 3.2 and non-core should default to 120.
+    // >=3.3 core profile -> 330. (3.2 with 150 not supported due to SPIRV-Cross' output being incorrect for that version)
+    // 100 ES is only suitable for ES due to default precision statements that break QOpenGLShaderProgram.
+
+    GlslVersion v;
+    if (format.profile() == QSurfaceFormat::CoreProfile)
+        v = GlslVersion(330, false);
+    else if (format.renderableType() == QSurfaceFormat::OpenGLES)
+        v = GlslVersion(100, true);
+    else
+        v = GlslVersion(120, false);
+
+    return v;
 }
 
 QByteArray QShader::hlsl()
