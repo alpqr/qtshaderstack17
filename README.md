@@ -47,3 +47,9 @@ for (auto ub : desc.uniformBlocks()) {
         // var.name(), var.type(), var.offset(), ...
 }
 ```
+
+Check https://github.com/alpqr/qtshaderstack17/tree/master/tests/manual/qshader
+for a basic example that opens two OpenGL windows: one requesting a plain 2.0+
+context and one using 3.3+ core. With the new infrastructure the shaders are
+written only once (color.vert, color.frag) and it's all Vulkan-compatible GLSL
+so also suitable for APIs other than GL.
