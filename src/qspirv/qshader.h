@@ -56,8 +56,16 @@ public:
     QByteArray spirv();
 
     QByteArray glsl(const QSurfaceFormat &format);
-    QVector<int> availableGlslVersions();
-    QByteArray glsl(int version);
+
+    struct GlslVersion {
+        GlslVersion() { }
+        GlslVersion(int v, bool e) : version(v), es(e) { }
+        int version = 100;
+        bool es = true;
+    };
+
+    QVector<GlslVersion> availableGlslVersions();
+    QByteArray glsl(const GlslVersion &version);
 
     QByteArray hlsl();
 
@@ -69,6 +77,14 @@ private:
     Q_DISABLE_COPY(QShader)
     QShaderPrivate *d = nullptr;
 };
+
+Q_SHADERSTACK_EXPORT bool operator==(const QShader::GlslVersion &, const QShader::GlslVersion &);
+Q_SHADERSTACK_EXPORT bool operator!=(const QShader::GlslVersion &, const QShader::GlslVersion &);
+Q_SHADERSTACK_EXPORT uint qHash(const QShader::GlslVersion &, uint seed);
+
+#ifndef QT_NO_DEBUG_STREAM
+Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShader::GlslVersion &);
+#endif
 
 QT_END_NAMESPACE
 

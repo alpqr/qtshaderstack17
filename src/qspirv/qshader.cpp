@@ -40,6 +40,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QHash>
+#include <QDebug>
 
 QT_BEGIN_NAMESPACE
 
@@ -55,8 +56,8 @@ struct QShaderPrivate
     QByteArray spirv;
 
     bool triedGlsl = false;
-    QVector<int> glslVersions;
-    QHash<int, QByteArray> glsl;
+    QVector<QShader::GlslVersion> glslVersions;
+    QHash<QShader::GlslVersion, QByteArray> glsl;
 
     bool triedHlsl = false;
     QByteArray hlsl;
@@ -112,35 +113,51 @@ QByteArray QShader::spirv()
 
 QByteArray QShader::glsl(const QSurfaceFormat &format)
 {
-    // ### mapping to 100 is not always correct, shaders using gl_PointCoord need 120 for instance
-    return glsl(format.profile() == QSurfaceFormat::CoreProfile ? 150 : 100);
+    // < 3.2 and non-core should default to 120.
+    // >=3.2 core profile -> 150.
+    // 100 ES is only suitable for ES due to default precision statements that break QOpenGLShaderProgram.
+
+    GlslVersion v;
+    if (format.profile() == QSurfaceFormat::CoreProfile)
+        v = GlslVersion(150, false);
+    else if (format.renderableType() == QSurfaceFormat::OpenGLES)
+        v = GlslVersion(100, true);
+    else
+        v = GlslVersion(120, false);
+
+    return glsl(v);
 }
 
-QVector<int> QShader::availableGlslVersions()
+QVector<QShader::GlslVersion> QShader::availableGlslVersions()
 {
     if (!d->triedGlsl) {
         d->triedGlsl = true;
         QFileInfo fi(d->prefix);
         QDir dir(fi.canonicalPath());
         QStringList files = dir.entryList({ fi.fileName() + QLatin1String(".glsl*") });
-        for (const QString &fn : files) {
+        for (QString fn : files) {
+            const bool isES = fn.endsWith(QLatin1String("es"));
+            if (isES)
+                fn = fn.left(fn.count() - 2);
             bool ok = false;
             int v = fn.right(3).toInt(&ok);
             if (ok)
-                d->glslVersions.append(v);
+                d->glslVersions.append(GlslVersion(v, isES));
         }
     }
     return d->glslVersions;
 }
 
-QByteArray QShader::glsl(int version)
+QByteArray QShader::glsl(const GlslVersion &version)
 {
     if (!availableGlslVersions().contains(version))
         return QByteArray();
 
     if (!d->glsl.contains(version)) {
         QByteArray suffix = QByteArrayLiteral(".glsl");
-        suffix.append(QByteArray::number(version));
+        suffix.append(QByteArray::number(version.version));
+        if (version.es)
+            suffix.append(QByteArrayLiteral("es"));
         d->glsl[version] = d->loadBlob(suffix.constData(), true);
     }
 
@@ -183,5 +200,29 @@ QShaderDescription QShader::description()
 
     return d->shaderDesc;
 }
+
+bool operator==(const QShader::GlslVersion &a, const QShader::GlslVersion &b)
+{
+    return a.version == b.version && a.es == b.es;
+}
+
+bool operator!=(const QShader::GlslVersion &a, const QShader::GlslVersion &b)
+{
+    return !(a == b);
+}
+
+uint qHash(const QShader::GlslVersion &v, uint seed)
+{
+    return seed + v.version + uint(v.es);
+}
+
+#ifndef QT_NO_DEBUG_STREAM
+QDebug operator<<(QDebug dbg, const QShader::GlslVersion &v)
+{
+    QDebugStateSaver saver(dbg);
+    dbg.nospace() << "GlslVersion(" << v.version << (v.es ? " es" : "") << ')';
+    return dbg;
+}
+#endif
 
 QT_END_NAMESPACE

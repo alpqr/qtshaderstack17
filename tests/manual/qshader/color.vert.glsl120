@@ -1,0 +1,22 @@
+#version 120
+#ifdef GL_ARB_shading_language_420pack
+#extension GL_ARB_shading_language_420pack : require
+#endif
+
+struct buf
+{
+    mat4 mvp;
+};
+
+uniform buf ubuf;
+
+varying vec3 v_color;
+attribute vec3 color;
+attribute vec4 position;
+
+void main()
+{
+    v_color = color;
+    gl_Position = ubuf.mvp * position;
+}
+
