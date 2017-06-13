@@ -137,10 +137,15 @@ Challenges
 
   * Interfacing with shaders (input/output)
 
-    For example, plain uniforms cannot be used. Instead, uniform
-    buffers, which in turn translate back to a struct (100) or uniform
-    buffers (300+). In general the input will have to be Vulkan-flavor
-    GLSL to make all target APIs happy.
+    For example, plain uniforms cannot be used. Instead, the input will have to
+    use uniform buffers, which in turn translate back to a plain struct (<=120)
+    or uniform buffers (130+/300+). Push constants map to a struct regardless
+    of target GLSL version, but it's not a general option due to the 128 byte
+    limit in Vulkan.
+
+    So in general the input will have to be Vulkan-flavor GLSL to make all
+    target APIs happy. The framework should likely provide some helpers for
+    uniform setting at runtime, to hide the differences in this respect.
 
   * Potential small differences: Y direction, clip space, ...
 
@@ -155,7 +160,9 @@ So What Does This Module Provide?
         debugging, human readable) JSON reflection data from SPIR-V, and
         to generate GLSL/HLSL/MSL.
 
-      - Qt APIs for the runtime counterpart (load reflection info at runtime etc.)
+      - Qt APIs for the runtime counterpart (load reflection info at runtime,
+        pick a suitable GLSL source for a QSurfaceFormat in GL apps, fetch the
+        SPIR-V binary in Vulkan apps, etc.)
 
   * qsc: a host tool to perform SPIR-V processing, with the relevant
     parts of qspirv compiled-in. Due to being a host tool it is suitable
