@@ -6,11 +6,6 @@ could then be used both by external tools (like qsc in this repo) and
 could also be built in to apps/libs that need runtime compilation for
 some reason.
 
-Unlike external glslang wrappers (shaderc and others), this would
-allow handling Qt-specifics properly (e.g. could support #include for
-files in qrc), and would only involve a minimal,
-easy-to-integrate-with-qmake-or-qbs-or-whatever set of dependencies.
-
 Assumes https://github.com/KhronosGroup/glslang is checked out under
 the current directory.
 

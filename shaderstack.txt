@@ -168,3 +168,7 @@ So What Does This Module Provide?
     parts of qspirv compiled-in. Due to being a host tool it is suitable
     also for cross-compilation and to be run by qmake/qbs. Supports
     outputting code for multiple GLSL versions.
+
+  * Regarding run-time compilation (in Qt libs/apps needing dynamic shader
+    string generation for instance), there is some work on-going under
+    glslang_embed. We'll see where that goes.
