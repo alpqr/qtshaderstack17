@@ -38,6 +38,7 @@
 #define QSPIRVCOMPILER_H
 
 #include <QtShaderTools/qtshadertoolsglobal.h>
+#include <QtCore/QString>
 
 QT_BEGIN_NAMESPACE
 
@@ -64,10 +65,10 @@ public:
         ComputeStage
     };
 
-    void setSourceFileName(const QString &sourceFileName);
-    void setSourceFileName(const QString &sourceFileName, Stage stage);
-    void setSourceDevice(QIODevice *device, Stage stage);
-    void setSourceString(const QByteArray &sourceString, Stage stage);
+    void setSourceFileName(const QString &fileName);
+    void setSourceFileName(const QString &fileName, Stage stage);
+    void setSourceDevice(QIODevice *device, Stage stage, const QString &fileName = QString());
+    void setSourceString(const QByteArray &sourceString, Stage stage, const QString &fileName = QString());
     void setFlags(Flags flags);
 
     QByteArray compileToSpirv();

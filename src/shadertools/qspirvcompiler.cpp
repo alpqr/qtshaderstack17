@@ -35,7 +35,6 @@
 ****************************************************************************/
 
 #include "qspirvcompiler.h"
-#include <QByteArray>
 #include <QFile>
 #include <QFileInfo>
 
@@ -174,27 +173,55 @@ public:
                                 const char *includerName,
                                 size_t inclusionDepth) override
     {
-        Q_UNUSED(headerName);
-        Q_UNUSED(includerName);
         Q_UNUSED(inclusionDepth);
-        return nullptr;
+        return readFile(headerName, includerName);
     }
 
     IncludeResult *includeSystem(const char *headerName,
                                  const char *includerName,
                                  size_t inclusionDepth) override
     {
-        Q_UNUSED(headerName);
-        Q_UNUSED(includerName);
         Q_UNUSED(inclusionDepth);
-        return nullptr;
+        return readFile(headerName, includerName);
     }
 
     void releaseInclude(IncludeResult *result) override
     {
-        delete result;
+        if (result) {
+            delete static_cast<QByteArray *>(result->userData);
+            delete result;
+        }
     }
+
+private:
+    IncludeResult *readFile(const char *headerName, const char *includerName);
 };
+
+glslang::TShader::Includer::IncludeResult *Includer::readFile(const char *headerName, const char *includerName)
+{
+    // Just treat the included name as relative to the includer:
+    //   Take the path from the includer, append the included name, remove redundancies.
+    // This should work also for qrc (source filenames with qrc:/ or :/ prefix).
+
+    QString includer = QString::fromUtf8(includerName);
+    if (includer.isEmpty())
+        includer = QLatin1String(".");
+    QString included = QFileInfo(includer).canonicalPath() + QChar('/') + QString::fromUtf8(headerName);
+    included = QFileInfo(included).canonicalFilePath();
+    if (included.isEmpty()) {
+        qWarning("QSpirvCompiler: Failed to find include file %s", headerName);
+        return nullptr;
+    }
+    QFile f(included);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning("QSpirvCompiler: Failed to read include file %s", qPrintable(included));
+        return nullptr;
+    }
+
+    QByteArray *data = new QByteArray;
+    *data = f.readAll();
+    return new IncludeResult(included.toStdString(), data->constData(), data->size(), data);
+}
 
 class GlobalInit
 {
@@ -267,12 +294,12 @@ QSpirvCompiler::~QSpirvCompiler()
     delete d;
 }
 
-void QSpirvCompiler::setSourceFileName(const QString &sourceFileName)
+void QSpirvCompiler::setSourceFileName(const QString &fileName)
 {
-    if (!d->readFile(sourceFileName))
+    if (!d->readFile(fileName))
         return;
 
-    const QString suffix = QFileInfo(sourceFileName).suffix();
+    const QString suffix = QFileInfo(fileName).suffix();
     if (suffix == QStringLiteral("vert")) {
         d->stage = EShLangVertex;
     } else if (suffix == QStringLiteral("frag")) {
@@ -296,22 +323,22 @@ static inline EShLanguage mapShaderStage(QSpirvCompiler::Stage stage)
     return EShLanguage(stage);
 }
 
-void QSpirvCompiler::setSourceFileName(const QString &sourceFileName, Stage stage)
+void QSpirvCompiler::setSourceFileName(const QString &fileName, Stage stage)
 {
-    if (!d->readFile(sourceFileName))
+    if (!d->readFile(fileName))
         return;
 
     d->stage = mapShaderStage(stage);
 }
 
-void QSpirvCompiler::setSourceDevice(QIODevice *device, Stage stage)
+void QSpirvCompiler::setSourceDevice(QIODevice *device, Stage stage, const QString &fileName)
 {
-    setSourceString(device->readAll(), stage);
+    setSourceString(device->readAll(), stage, fileName);
 }
 
-void QSpirvCompiler::setSourceString(const QByteArray &sourceString, Stage stage)
+void QSpirvCompiler::setSourceString(const QByteArray &sourceString, Stage stage, const QString &fileName)
 {
-    d->sourceFileName = QLatin1String("<UNKNOWN>");
+    d->sourceFileName = fileName; // for error messages, include handling, etc.
     d->source = sourceString;
     d->stage = mapShaderStage(stage);
 }
