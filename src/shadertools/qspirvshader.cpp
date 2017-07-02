@@ -262,9 +262,11 @@ void QSpirvShader::setFileName(const QString &fileName)
 void QSpirvShader::setDevice(QIODevice *device)
 {
     d->ir = device->readAll();
+    d->createGLSLCompiler();
+    d->processResources();
 }
 
-void QSpirvShader::setSource(const QByteArray &spirv)
+void QSpirvShader::setSpirvBinary(const QByteArray &spirv)
 {
     d->ir = spirv;
     d->createGLSLCompiler();
@@ -273,10 +275,6 @@ void QSpirvShader::setSource(const QByteArray &spirv)
 
 QShaderDescription QSpirvShader::shaderDescription() const
 {
-    if (!d->shaderDescription.isValid()) {
-        d->createGLSLCompiler();
-        d->processResources();
-    }
     return d->shaderDescription;
 }
 

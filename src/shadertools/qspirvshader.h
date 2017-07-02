@@ -60,7 +60,7 @@ public:
 
     void setFileName(const QString &fileName);
     void setDevice(QIODevice *device);
-    void setSource(const QByteArray &spirv);
+    void setSpirvBinary(const QByteArray &spirv);
 
     QShaderDescription shaderDescription() const;
 
