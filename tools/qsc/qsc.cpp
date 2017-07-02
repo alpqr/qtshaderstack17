@@ -32,27 +32,6 @@
 #include <QtShaderTools/qspirvshader.h>
 #include <QtShaderTools/qspirvcompiler.h>
 
-static QString compile(const QString &fn)
-{
-    QSpirvCompiler compiler;
-    compiler.setSourceFile(fn);
-    QByteArray spirv = compiler.compileToSpirv();
-    if (spirv.isEmpty()) {
-        qDebug("%s", qPrintable(compiler.errorMessage()));
-        return QString();
-    }
-
-    QFileInfo info(fn);
-    const QString spvName = info.filePath() + QLatin1String(".spv");
-    QFile f(spvName);
-    if (f.open(QIODevice::WriteOnly))
-        f.write(spirv);
-    else
-        qWarning("Failed to write %s", qPrintable(spvName));
-
-    return spvName;
-}
-
 static bool writeToFile(const QByteArray &buf, const QString &filename, bool text = false)
 {
     QFile f(filename);
@@ -65,6 +44,24 @@ static bool writeToFile(const QByteArray &buf, const QString &filename, bool tex
     }
     f.write(buf);
     return true;
+}
+
+static QString compile(const QString &fn)
+{
+    QSpirvCompiler compiler;
+    compiler.setSourceFile(fn);
+    QByteArray spirv = compiler.compileToSpirv();
+    if (spirv.isEmpty()) {
+        qDebug("%s", qPrintable(compiler.errorMessage()));
+        return QString();
+    }
+
+    QFileInfo info(fn);
+    const QString spvName = info.filePath() + QLatin1String(".spv");
+    if (!writeToFile(spirv, spvName))
+        return QString();
+
+    return spvName;
 }
 
 int main(int argc, char **argv)
