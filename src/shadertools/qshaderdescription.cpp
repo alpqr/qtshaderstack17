@@ -126,6 +126,44 @@ QVector<QShaderDescription::InOutVariable> QShaderDescription::combinedImageSamp
     return d->combinedImageSamplers;
 }
 
+static struct TypeTab {
+    QString k;
+    QShaderDescription::VarType v;
+} typeTab[] = {
+    // ### keep in sync with qspirvshader.cpp
+    { QLatin1String("float"), QShaderDescription::Float },
+    { QLatin1String("vec2"), QShaderDescription::Vec2 },
+    { QLatin1String("vec3"), QShaderDescription::Vec3 },
+    { QLatin1String("vec4"), QShaderDescription::Vec4 },
+    { QLatin1String("mat2"), QShaderDescription::Mat2 },
+    { QLatin1String("mat3"), QShaderDescription::Mat3 },
+    { QLatin1String("mat4"), QShaderDescription::Mat4 },
+    { QLatin1String("int"), QShaderDescription::Int },
+    { QLatin1String("uint"), QShaderDescription::Uint },
+    { QLatin1String("bool"), QShaderDescription::Bool },
+    { QLatin1String("sampler2D"), QShaderDescription::Sampler2D },
+    { QLatin1String("sampler3D"), QShaderDescription::Sampler3D },
+    { QLatin1String("samplerCube"), QShaderDescription::SamplerCube }
+};
+
+static QString typeStr(const QShaderDescription::VarType &t)
+{
+    for (size_t i = 0; i < sizeof(typeTab) / sizeof(TypeTab); ++i) {
+        if (typeTab[i].v == t)
+            return typeTab[i].k;
+    }
+    return QString();
+}
+
+static QShaderDescription::VarType mapType(const QString &t)
+{
+    for (size_t i = 0; i < sizeof(typeTab) / sizeof(TypeTab); ++i) {
+        if (typeTab[i].k == t)
+            return typeTab[i].v;
+    }
+    return QShaderDescription::Unknown;
+}
+
 #ifndef QT_NO_DEBUG_STREAM
 QDebug operator<<(QDebug dbg, const QShaderDescription &sd)
 {
@@ -147,44 +185,10 @@ QDebug operator<<(QDebug dbg, const QShaderDescription &sd)
     return dbg;
 }
 
-static const char *dbgTypeStr(QShaderDescription::VarType t)
-{
-    switch (t) {
-    case QShaderDescription::Float:
-        return "float";
-    case QShaderDescription::Vec2:
-        return "vec2";
-    case QShaderDescription::Vec3:
-        return "vec3";
-    case QShaderDescription::Vec4:
-        return "vec4";
-    case QShaderDescription::Mat2:
-        return "mat2";
-    case QShaderDescription::Mat3:
-        return "mat3";
-    case QShaderDescription::Mat4:
-        return "mat4";
-    case QShaderDescription::Int:
-        return "int";
-    case QShaderDescription::Uint:
-        return "uint";
-    case QShaderDescription::Bool:
-        return "bool";
-    case QShaderDescription::Sampler2D:
-        return "sampler2D";
-    case QShaderDescription::Sampler3D:
-        return "sampler3D";
-    case QShaderDescription::SamplerCube:
-        return "samplerCube";
-    default:
-        return "UNKNOWN";
-    }
-}
-
 QDebug operator<<(QDebug dbg, const QShaderDescription::InOutVariable &var)
 {
     QDebugStateSaver saver(dbg);
-    dbg.nospace() << "InOutVariable(" << dbgTypeStr(var.type) << ' ' << var.name;
+    dbg.nospace() << "InOutVariable(" << typeStr(var.type) << ' ' << var.name;
     if (var.location >= 0)
         dbg.nospace() << " location=" << var.location;
     if (var.binding >= 0)
@@ -196,7 +200,7 @@ QDebug operator<<(QDebug dbg, const QShaderDescription::InOutVariable &var)
 QDebug operator<<(QDebug dbg, const QShaderDescription::BlockVariable &var)
 {
     QDebugStateSaver saver(dbg);
-    dbg.nospace() << "BlockVariable(" << dbgTypeStr(var.type) << ' ' << var.name
+    dbg.nospace() << "BlockVariable(" << typeStr(var.type) << ' ' << var.name
                   << " offset=" << var.offset << ')';
     return dbg;
 }
@@ -222,56 +226,13 @@ static const QString locationKey = QLatin1String("location");
 static const QString bindingKey = QLatin1String("binding");
 static const QString offsetKey = QLatin1String("offset");
 static const QString membersKey = QLatin1String("members");
-
-static QString typeStr(const QShaderDescription::VarType &t)
-{
-    // ### keep in sync with qspirvshader.cpp
-    QString s;
-    switch (t) {
-    case QShaderDescription::Float:
-        s = QLatin1String("float");
-        break;
-    case QShaderDescription::Vec2:
-        s = QLatin1String("vec2");
-        break;
-    case QShaderDescription::Vec3:
-        s = QLatin1String("vec3");
-        break;
-    case QShaderDescription::Vec4:
-        s = QLatin1String("vec4");
-        break;
-    case QShaderDescription::Mat2:
-        s = QLatin1String("mat2");
-        break;
-    case QShaderDescription::Mat3:
-        s = QLatin1String("mat3");
-        break;
-    case QShaderDescription::Mat4:
-        s = QLatin1String("mat4");
-        break;
-    case QShaderDescription::Int:
-        s = QLatin1String("int");
-        break;
-    case QShaderDescription::Uint:
-        s = QLatin1String("uint");
-        break;
-    case QShaderDescription::Bool:
-        s = QLatin1String("bool");
-        break;
-    case QShaderDescription::Sampler2D:
-        s = QLatin1String("sampler2D");
-        break;
-    case QShaderDescription::Sampler3D:
-        s = QLatin1String("sampler3D");
-        break;
-    case QShaderDescription::SamplerCube:
-        s = QLatin1String("samplerCube");
-        break;
-    default:
-        break;
-    }
-    return s;
-}
+static const QString inputsKey = QLatin1String("inputs");
+static const QString outputsKey = QLatin1String("outputs");
+static const QString uniformBlocksKey = QLatin1String("uniformBlocks");
+static const QString blockNameKey = QLatin1String("blockName");
+static const QString structNameKey = QLatin1String("structName");
+static const QString pushConstantBlocksKey = QLatin1String("pushConstantBlocks");
+static const QString combinedImageSamplersKey = QLatin1String("combinedImageSamplers");
 
 static void addDeco(QJsonObject *obj, const QShaderDescription::InOutVariable &v)
 {
@@ -300,19 +261,19 @@ QJsonDocument QShaderDescriptionPrivate::makeDoc()
     for (const QShaderDescription::InOutVariable &v : qAsConst(inVars))
         jinputs.append(inOutObject(v));
     if (!jinputs.isEmpty())
-        root[QLatin1String("inputs")] = jinputs;
+        root[inputsKey] = jinputs;
 
     QJsonArray joutputs;
     for (const QShaderDescription::InOutVariable &v : qAsConst(outVars))
         joutputs.append(inOutObject(v));
     if (!joutputs.isEmpty())
-        root[QLatin1String("outputs")] = joutputs;
+        root[outputsKey] = joutputs;
 
     QJsonArray juniformBlocks;
     for (const QShaderDescription::UniformBlock &b : uniformBlocks) {
         QJsonObject juniformBlock;
-        juniformBlock[QLatin1String("blockName")] = b.blockName;
-        juniformBlock[QLatin1String("structName")] = b.structName;
+        juniformBlock[blockNameKey] = b.blockName;
+        juniformBlock[structNameKey] = b.structName;
         QJsonArray members;
         uint32_t idx = 0;
         for (const QShaderDescription::BlockVariable &v : b.members) {
@@ -328,9 +289,9 @@ QJsonDocument QShaderDescriptionPrivate::makeDoc()
         juniformBlocks.append(juniformBlock);
     }
     if (!juniformBlocks.isEmpty())
-        root[QLatin1String("uniformBlocks")] = juniformBlocks;
+        root[uniformBlocksKey] = juniformBlocks;
 
-    QJsonArray jpushConstantBlocks; // maps to a plain GLSL struct regardless of version
+    QJsonArray jpushConstantBlocks;
     for (const QShaderDescription::PushConstantBlock &b : pushConstantBlocks) {
         QJsonObject jpushConstantBlock;
         jpushConstantBlock[nameKey] = b.name;
@@ -347,7 +308,7 @@ QJsonDocument QShaderDescriptionPrivate::makeDoc()
         jpushConstantBlocks.append(jpushConstantBlock);
     }
     if (!jpushConstantBlocks.isEmpty())
-        root[QLatin1String("pushConstantBlocks")] = jpushConstantBlocks;
+        root[pushConstantBlocksKey] = jpushConstantBlocks;
 
     QJsonArray jcombinedSamplers;
     for (const QShaderDescription::InOutVariable &v : qAsConst(combinedImageSamplers)) {
@@ -358,37 +319,9 @@ QJsonDocument QShaderDescriptionPrivate::makeDoc()
         jcombinedSamplers.append(sampler);
     }
     if (!jcombinedSamplers.isEmpty())
-        root[QLatin1String("combinedImageSamplers")] = jcombinedSamplers;
+        root[combinedImageSamplersKey] = jcombinedSamplers;
 
     return QJsonDocument(root);
-}
-
-static QShaderDescription::VarType mapType(const QString &t)
-{
-    // ### sync with typeStr
-    struct Tab {
-        QString k;
-        QShaderDescription::VarType v;
-    } tab[] = {
-        { QLatin1String("float"), QShaderDescription::Float },
-        { QLatin1String("vec2"), QShaderDescription::Vec2 },
-        { QLatin1String("vec3"), QShaderDescription::Vec3 },
-        { QLatin1String("vec4"), QShaderDescription::Vec4 },
-        { QLatin1String("mat2"), QShaderDescription::Mat2 },
-        { QLatin1String("mat3"), QShaderDescription::Mat3 },
-        { QLatin1String("mat4"), QShaderDescription::Mat4 },
-        { QLatin1String("int"), QShaderDescription::Int },
-        { QLatin1String("uint"), QShaderDescription::Uint },
-        { QLatin1String("bool"), QShaderDescription::Bool },
-        { QLatin1String("sampler2D"), QShaderDescription::Sampler2D },
-        { QLatin1String("sampler3D"), QShaderDescription::Sampler3D },
-        { QLatin1String("samplerCube"), QShaderDescription::SamplerCube }
-    };
-    for (size_t i = 0; i < sizeof(tab) / sizeof(Tab); ++i) {
-        if (tab[i].k == t)
-            return tab[i].v;
-    }
-    return QShaderDescription::Unknown;
 }
 
 static QShaderDescription::InOutVariable inOutVar(const QJsonObject &obj)
@@ -420,7 +353,7 @@ void QShaderDescriptionPrivate::loadDoc(const QJsonDocument &doc)
         return;
     }
 
-    Q_ASSERT(ref.load() == 1);
+    Q_ASSERT(ref.load() == 1); // must be detached
 
     inVars.clear();
     outVars.clear();
@@ -430,24 +363,19 @@ void QShaderDescriptionPrivate::loadDoc(const QJsonDocument &doc)
 
     QJsonObject root = doc.object();
 
-    const QString inputsKey = QLatin1String("inputs");
     if (root.contains(inputsKey)) {
         QJsonArray inputs = root[inputsKey].toArray();
         for (int i = 0; i < inputs.count(); ++i)
             inVars.append(inOutVar(inputs[i].toObject()));
     }
 
-    const QString outputsKey = QLatin1String("outputs");
     if (root.contains(outputsKey)) {
         QJsonArray outputs = root[outputsKey].toArray();
         for (int i = 0; i < outputs.count(); ++i)
             outVars.append(inOutVar(outputs[i].toObject()));
     }
 
-    const QString uniformBlocksKey = QLatin1String("uniformBlocks");
     if (root.contains(uniformBlocksKey)) {
-        const QString blockNameKey = QLatin1String("blockName");
-        const QString structNameKey = QLatin1String("structName");
         QJsonArray ubs = root[uniformBlocksKey].toArray();
         for (int i = 0; i < ubs.count(); ++i) {
             QJsonObject ubObj = ubs[i].toObject();
@@ -461,9 +389,8 @@ void QShaderDescriptionPrivate::loadDoc(const QJsonDocument &doc)
         }
     }
 
-    const QString pcKey = QLatin1String("pushConstantBlocks");
-    if (root.contains(pcKey)) {
-        QJsonArray pcs = root[pcKey].toArray();
+    if (root.contains(pushConstantBlocksKey)) {
+        QJsonArray pcs = root[pushConstantBlocksKey].toArray();
         for (int i = 0; i < pcs.count(); ++i) {
             QJsonObject pcObj = pcs[i].toObject();
             QShaderDescription::PushConstantBlock pc;
@@ -475,7 +402,6 @@ void QShaderDescriptionPrivate::loadDoc(const QJsonDocument &doc)
         }
     }
 
-    const QString combinedImageSamplersKey = QLatin1String("combinedImageSamplers");
     if (root.contains(combinedImageSamplersKey)) {
         QJsonArray samplers = root[combinedImageSamplersKey].toArray();
         for (int i = 0; i < samplers.count(); ++i)
