@@ -1,3 +1,6 @@
+Note: Master is a bit out of date now, check the https://github.com/alpqr/qtshaderstack17/tree/newapi branch instead, with glslang integrated, better APIs, etc.
+
+
 Experiments for more modern graphics shader management in future Qt
 ===================================================================
 
