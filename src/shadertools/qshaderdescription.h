@@ -3,7 +3,7 @@
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
-** This file is part of the Qt Shader Stack module
+** This file is part of the Qt Shader Tools module
 **
 ** $QT_BEGIN_LICENSE:LGPL3$
 ** Commercial License Usage
@@ -37,15 +37,15 @@
 #ifndef QSHADERDESCRIPTION_H
 #define QSHADERDESCRIPTION_H
 
-#include <QtShaderStack/qtshaderstackglobal.h>
-#include <QString>
-#include <QVector>
+#include <QtShaderTools/qtshadertoolsglobal.h>
+#include <QtCore/QString>
+#include <QtCore/QVector>
 
 QT_BEGIN_NAMESPACE
 
 struct QShaderDescriptionPrivate;
 
-class Q_SHADERSTACK_EXPORT QShaderDescription
+class Q_SHADERTOOLS_EXPORT QShaderDescription
 {
 public:
     QShaderDescription();
@@ -107,16 +107,16 @@ private:
     QShaderDescriptionPrivate *d;
     friend struct QShaderDescriptionPrivate;
 #ifndef QT_NO_DEBUG_STREAM
-    friend Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription &);
+    friend Q_SHADERTOOLS_EXPORT QDebug operator<<(QDebug, const QShaderDescription &);
 #endif
 };
 
 #ifndef QT_NO_DEBUG_STREAM
-Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription &);
-Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription::InOutVariable &);
-Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription::BlockVariable &);
-Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription::UniformBlock &);
-Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShaderDescription::PushConstantBlock &);
+Q_SHADERTOOLS_EXPORT QDebug operator<<(QDebug, const QShaderDescription &);
+Q_SHADERTOOLS_EXPORT QDebug operator<<(QDebug, const QShaderDescription::InOutVariable &);
+Q_SHADERTOOLS_EXPORT QDebug operator<<(QDebug, const QShaderDescription::BlockVariable &);
+Q_SHADERTOOLS_EXPORT QDebug operator<<(QDebug, const QShaderDescription::UniformBlock &);
+Q_SHADERTOOLS_EXPORT QDebug operator<<(QDebug, const QShaderDescription::PushConstantBlock &);
 #endif
 
 QT_END_NAMESPACE

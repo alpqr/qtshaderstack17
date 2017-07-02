@@ -1,2 +1,7 @@
 TEMPLATE = subdirs
-SUBDIRS = qspirv
+CONFIG += ordered
+
+SUBDIRS += \
+    glslang \
+    SPIRV-Cross \
+    shadertools

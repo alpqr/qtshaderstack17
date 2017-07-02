@@ -3,7 +3,7 @@
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
-** This file is part of the Qt Shader Stack module
+** This file is part of the Qt Shader Tools module
 **
 ** $QT_BEGIN_LICENSE:LGPL3$
 ** Commercial License Usage
@@ -34,24 +34,49 @@
 **
 ****************************************************************************/
 
-#ifndef QTSHADERSTACKGLOBAL_H
-#define QTSHADERSTACKGLOBAL_H
+#ifndef QSPIRVSHADER_H
+#define QSPIRVSHADER_H
 
-#include <QtCore/qglobal.h>
+#include <QtShaderTools/qtshadertoolsglobal.h>
+#include <QtShaderTools/qshaderdescription.h>
 
 QT_BEGIN_NAMESPACE
 
-#ifndef Q_SHADERSTACK_EXPORT
-#  if !defined(QT_STATIC) && !defined(QT_SHADERSTACK_BUILTIN)
-#    if defined(QT_BUILD_SHADERSTACK_LIB)
-#      define Q_SHADERSTACK_EXPORT Q_DECL_EXPORT
-#    else
-#      define Q_SHADERSTACK_EXPORT Q_DECL_IMPORT
-#    endif
-#  else
-#    define Q_SHADERSTACK_EXPORT
-#  endif
-#endif
+class QIODevice;
+struct QSpirvShaderPrivate;
+
+class Q_SHADERTOOLS_EXPORT QSpirvShader
+{
+public:
+    enum GlslFlag {
+        GlslEs = 0x01,
+        FixClipSpace = 0x02,
+        FragDefaultMediump = 0x04
+    };
+    Q_DECLARE_FLAGS(GlslFlags, GlslFlag)
+
+    QSpirvShader();
+    ~QSpirvShader();
+
+    void setFileName(const QString &fileName);
+    void setDevice(QIODevice *device);
+    void setSource(const QByteArray &spirv);
+
+    bool isValid() const;
+    QShaderDescription shaderDescription() const;
+    QByteArray shaderDescriptionAsBinaryJson() const;
+    QByteArray shaderDescriptionAsJson() const;
+
+    QByteArray translateToGLSL(int version = 100, GlslFlags flags = GlslEs);
+    QByteArray translateToHLSL();
+    QByteArray translateToMSL();
+
+private:
+    Q_DISABLE_COPY(QSpirvShader)
+    QSpirvShaderPrivate *d = nullptr;
+};
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(QSpirvShader::GlslFlags)
 
 QT_END_NAMESPACE
 

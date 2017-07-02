@@ -3,7 +3,7 @@
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
-** This file is part of the Qt Shader Stack module
+** This file is part of the Qt Shader Tools module
 **
 ** $QT_BEGIN_LICENSE:LGPL3$
 ** Commercial License Usage
@@ -34,7 +34,8 @@
 **
 ****************************************************************************/
 
-#include "qspirv.h"
+#include "qspirvshader.h"
+#include "qshaderdescription_p.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -46,54 +47,66 @@
 
 QT_BEGIN_NAMESPACE
 
-struct QSpirvPrivate
+struct QSpirvShaderPrivate
 {
-    QSpirvPrivate(QIODevice *device);
-    ~QSpirvPrivate();
+    ~QSpirvShaderPrivate();
 
+    void createGLSLCompiler();
     void processResources();
     QJsonObject inOutObject(const spirv_cross::Resource &r);
     void addDeco(QJsonObject *obj, const spirv_cross::Resource &r);
 
     QByteArray ir;
     QJsonDocument doc;
+    QShaderDescription shaderDescription;
 
     spirv_cross::CompilerGLSL *glslGen = nullptr;
     spirv_cross::CompilerHLSL *hlslGen = nullptr;
     spirv_cross::CompilerMSL *mslGen = nullptr;
 };
 
-QSpirv::QSpirv(const QString &filename)
-{
-    QFile f(filename);
-    if (!f.open(QIODevice::ReadOnly)) {
-        qWarning("QSpirv: Failed to open %s", qPrintable(filename));
-        return;
-    }
-    d = new QSpirvPrivate(&f);
-}
-
-QSpirv::QSpirv(QIODevice *device)
-    : d(new QSpirvPrivate(device))
+QSpirvShader::QSpirvShader()
+    : d(new QSpirvShaderPrivate)
 {
 }
 
-QSpirv::~QSpirv()
+QSpirvShader::~QSpirvShader()
 {
     delete d;
 }
 
-QSpirvPrivate::QSpirvPrivate(QIODevice *device)
+void QSpirvShader::setFileName(const QString &fileName)
 {
-    ir = device->readAll();
-
-    // ### little endian only for now
-    glslGen = new spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t *>(ir.constData()), ir.size() / 4);
-
-    processResources();
+    QFile f(fileName);
+    if (!f.open(QIODevice::ReadOnly)) {
+        qWarning("QSpirvShader: Failed to open %s", qPrintable(fileName));
+        return;
+    }
+    setDevice(&f);
 }
 
-QSpirvPrivate::~QSpirvPrivate()
+void QSpirvShader::setDevice(QIODevice *device)
+{
+    d->ir = device->readAll();
+    d->createGLSLCompiler();
+    d->processResources();
+}
+
+void QSpirvShader::setSource(const QByteArray &spirv)
+{
+    d->ir = spirv;
+    d->createGLSLCompiler();
+    d->processResources();
+}
+
+void QSpirvShaderPrivate::createGLSLCompiler()
+{
+    delete glslGen;
+    // ### little endian only for now
+    glslGen = new spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t *>(ir.constData()), ir.size() / 4);
+}
+
+QSpirvShaderPrivate::~QSpirvShaderPrivate()
 {
     delete mslGen;
     delete hlslGen;
@@ -171,7 +184,7 @@ static QString typeStr(const spirv_cross::SPIRType &t)
     return s;
 }
 
-QJsonObject QSpirvPrivate::inOutObject(const spirv_cross::Resource &r)
+QJsonObject QSpirvShaderPrivate::inOutObject(const spirv_cross::Resource &r)
 {
     QJsonObject obj;
     obj[QLatin1String("name")] = QString::fromStdString(r.name);
@@ -184,7 +197,7 @@ QJsonObject QSpirvPrivate::inOutObject(const spirv_cross::Resource &r)
     return obj;
 }
 
-void QSpirvPrivate::addDeco(QJsonObject *obj, const spirv_cross::Resource &r)
+void QSpirvShaderPrivate::addDeco(QJsonObject *obj, const spirv_cross::Resource &r)
 {
     if (glslGen->has_decoration(r.id, spv::DecorationLocation))
         (*obj)[QLatin1String("location")] = qint64(glslGen->get_decoration(r.id, spv::DecorationLocation));
@@ -194,7 +207,7 @@ void QSpirvPrivate::addDeco(QJsonObject *obj, const spirv_cross::Resource &r)
     // ### more decorations?
 }
 
-void QSpirvPrivate::processResources()
+void QSpirvShaderPrivate::processResources()
 {
     spirv_cross::ShaderResources resources = glslGen->get_shader_resources();
 
@@ -281,30 +294,36 @@ void QSpirvPrivate::processResources()
     if (!combinedSamplers.isEmpty())
         root[QLatin1String("combinedImageSamplers")] = combinedSamplers;
 
+    shaderDescription = QShaderDescription();
     doc = QJsonDocument(root);
+    QShaderDescriptionPrivate::get(&shaderDescription)->setDocument(doc);
 }
 
-bool QSpirv::isValid() const
+bool QSpirvShader::isValid() const
 {
     return d && !d->doc.isEmpty();
 }
 
-QByteArray QSpirv::reflectionBinaryJson() const
+QShaderDescription QSpirvShader::shaderDescription() const
+{
+    return d->shaderDescription;
+}
+
+QByteArray QSpirvShader::shaderDescriptionAsBinaryJson() const
 {
     return d->doc.toBinaryData();
 }
 
-QByteArray QSpirv::reflectionJson() const
+QByteArray QSpirvShader::shaderDescriptionAsJson() const
 {
     return d->doc.toJson();
 }
 
-QByteArray QSpirv::translateToGLSL(int version, GlslFlags flags)
+QByteArray QSpirvShader::translateToGLSL(int version, GlslFlags flags)
 {
     // create a new instance since options handling seem to be problematic
     // (won't pick up new options on the second and subsequent compile())
-    delete d->glslGen;
-    d->glslGen = new spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t *>(d->ir.constData()), d->ir.size() / 4);
+    d->createGLSLCompiler();
 
     spirv_cross::CompilerGLSL::Options options;
     options.version = version;
@@ -332,7 +351,7 @@ QByteArray QSpirv::translateToGLSL(int version, GlslFlags flags)
     return src;
 }
 
-QByteArray QSpirv::translateToHLSL()
+QByteArray QSpirvShader::translateToHLSL()
 {
     if (!d->hlslGen)
         d->hlslGen = new spirv_cross::CompilerHLSL(reinterpret_cast<const uint32_t *>(d->ir.constData()), d->ir.size() / 4);
@@ -342,7 +361,7 @@ QByteArray QSpirv::translateToHLSL()
     return QByteArray::fromStdString(hlsl);
 }
 
-QByteArray QSpirv::translateToMSL()
+QByteArray QSpirvShader::translateToMSL()
 {
     if (!d->mslGen)
         d->mslGen = new spirv_cross::CompilerMSL(reinterpret_cast<const uint32_t *>(d->ir.constData()), d->ir.size() / 4);

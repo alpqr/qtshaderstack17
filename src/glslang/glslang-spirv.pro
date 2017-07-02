@@ -1,10 +1,13 @@
-TEMPLATE = lib
-CONFIG += staticlib
-QT =
-TARGET = $$qtLibraryTarget(QtSpirvGlslangSPIRV)
-DESTDIR = $$PWD
+TARGET = qtglslang-spirv
 
-GLSLANG_PATH=$$PWD/glslang
+CONFIG += \
+    static \
+    hide_symbols \
+    exceptions_off rtti_off warn_off
+
+load(qt_helper_lib)
+
+GLSLANG_PATH=$$PWD/../3rdparty/glslang
 
 win32: DEFINES += -DGLSLANG_OSINCLUDE_WIN32
 unix: DEFINES += -DGLSLANG_OSINCLUDE_UNIX

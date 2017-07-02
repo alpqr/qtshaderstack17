@@ -3,7 +3,7 @@
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
-** This file is part of the Qt Shader Stack module
+** This file is part of the Qt Shader Tools module
 **
 ** $QT_BEGIN_LICENSE:LGPL3$
 ** Commercial License Usage
@@ -34,56 +34,49 @@
 **
 ****************************************************************************/
 
-#ifndef QSHADERDESCRIPTION_P_H
-#define QSHADERDESCRIPTION_P_H
+#ifndef QSPIRVCOMPILER_H
+#define QSPIRVCOMPILER_H
 
-//
-//  W A R N I N G
-//  -------------
-//
-// This file is not part of the Qt API.  It exists for the convenience
-// of a number of Qt sources files.  This header file may change from
-// version to version without notice, or even be removed.
-//
-// We mean it.
-//
-
-#include "qshaderdescription.h"
-#include <QVector>
-#include <QAtomicInt>
-#include <QJsonDocument>
+#include <QtShaderTools/qtshadertoolsglobal.h>
 
 QT_BEGIN_NAMESPACE
 
-struct QShaderDescriptionPrivate
+struct QSpirvCompilerPrivate;
+
+class Q_SHADERTOOLS_EXPORT QSpirvCompiler
 {
-    QShaderDescriptionPrivate()
-        : ref(1)
-    {
-    }
+public:
+    QSpirvCompiler();
+    ~QSpirvCompiler();
 
-    QShaderDescriptionPrivate(const QShaderDescriptionPrivate *other)
-        : ref(1),
-          doc(other->doc)
-    {
-    }
+    enum Flag {
+        UseOpenGLRules = 0x01
+    };
+    Q_DECLARE_FLAGS(Flags, Flag)
 
-    static QShaderDescriptionPrivate *get(QShaderDescription *desc) { return desc->d; }
-    void setDocument(const QJsonDocument &newDoc);
+    enum Stage {
+        VertexStage,
+        TessControlStage,
+        TessEvaluationStage,
+        GeometryStage,
+        FragmentStage,
+        ComputeStage
+    };
 
-    QShaderDescription::InOutVariable makeInOutVar(const QJsonObject &obj);
-    QShaderDescription::BlockVariable makeBlockVar(const QJsonObject &obj);
-    QShaderDescription::VarType mapType(const QString &t);
+    void setSourceFile(const QString &sourceFileName);
+    void setSourceFile(const QString &sourceFileName, Stage stage);
+    void setSourceString(const QByteArray &sourceString, Stage stage);
+    void setFlags(Flags flags);
 
-    QAtomicInt ref;
-    QJsonDocument doc;
+    QByteArray compileToSpirv();
+    QString errorMessage() const;
 
-    QVector<QShaderDescription::InOutVariable> inVars;
-    QVector<QShaderDescription::InOutVariable> outVars;
-    QVector<QShaderDescription::UniformBlock> uniformBlocks;
-    QVector<QShaderDescription::PushConstantBlock> pushConstantBlocks;
-    QVector<QShaderDescription::InOutVariable> combinedImageSamplers;
+private:
+    Q_DISABLE_COPY(QSpirvCompiler)
+    QSpirvCompilerPrivate *d = nullptr;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(QSpirvCompiler::Flags)
 
 QT_END_NAMESPACE
 

@@ -3,7 +3,7 @@
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
-** This file is part of the Qt Shader Stack module
+** This file is part of the Qt Shader Tools module
 **
 ** $QT_BEGIN_LICENSE:LGPL3$
 ** Commercial License Usage
@@ -34,56 +34,56 @@
 **
 ****************************************************************************/
 
-#ifndef QSHADER_H
-#define QSHADER_H
+#ifndef QSHADERDESCRIPTION_P_H
+#define QSHADERDESCRIPTION_P_H
 
-#include <QtShaderStack/qtshaderstackglobal.h>
-#include <QtShaderStack/qshaderdescription.h>
-#include <QString>
-#include <QVector>
-#include <QSurfaceFormat>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists for the convenience
+// of a number of Qt sources files.  This header file may change from
+// version to version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "qshaderdescription.h"
+#include <QtCore/QVector>
+#include <QtCore/QAtomicInt>
+#include <QtCore/QJsonDocument>
 
 QT_BEGIN_NAMESPACE
 
-struct QShaderPrivate;
-
-class Q_SHADERSTACK_EXPORT QShader
+struct QShaderDescriptionPrivate
 {
-public:
-    QShader(const QString &filenamePrefix);
-    ~QShader();
+    QShaderDescriptionPrivate()
+        : ref(1)
+    {
+    }
 
-    QByteArray spirv();
+    QShaderDescriptionPrivate(const QShaderDescriptionPrivate *other)
+        : ref(1),
+          doc(other->doc)
+    {
+    }
 
-    struct GlslVersion {
-        GlslVersion() { }
-        GlslVersion(int v, bool e) : version(v), es(e) { }
-        int version = 100;
-        bool es = true;
-    };
+    static QShaderDescriptionPrivate *get(QShaderDescription *desc) { return desc->d; }
+    void setDocument(const QJsonDocument &newDoc);
 
-    QVector<GlslVersion> availableGlslVersions();
-    QByteArray glsl(const GlslVersion &version);
-    GlslVersion glslVersionForFormat(const QSurfaceFormat &format);
+    QShaderDescription::InOutVariable makeInOutVar(const QJsonObject &obj);
+    QShaderDescription::BlockVariable makeBlockVar(const QJsonObject &obj);
+    QShaderDescription::VarType mapType(const QString &t);
 
-    QByteArray hlsl();
+    QAtomicInt ref;
+    QJsonDocument doc;
 
-    QByteArray msl();
-
-    QShaderDescription description();
-
-private:
-    Q_DISABLE_COPY(QShader)
-    QShaderPrivate *d = nullptr;
+    QVector<QShaderDescription::InOutVariable> inVars;
+    QVector<QShaderDescription::InOutVariable> outVars;
+    QVector<QShaderDescription::UniformBlock> uniformBlocks;
+    QVector<QShaderDescription::PushConstantBlock> pushConstantBlocks;
+    QVector<QShaderDescription::InOutVariable> combinedImageSamplers;
 };
-
-Q_SHADERSTACK_EXPORT bool operator==(const QShader::GlslVersion &, const QShader::GlslVersion &);
-Q_SHADERSTACK_EXPORT bool operator!=(const QShader::GlslVersion &, const QShader::GlslVersion &);
-Q_SHADERSTACK_EXPORT uint qHash(const QShader::GlslVersion &, uint seed);
-
-#ifndef QT_NO_DEBUG_STREAM
-Q_SHADERSTACK_EXPORT QDebug operator<<(QDebug, const QShader::GlslVersion &);
-#endif
 
 QT_END_NAMESPACE
 

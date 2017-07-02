@@ -3,7 +3,7 @@
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
-** This file is part of the Qt Shader Stack module
+** This file is part of the Qt Shader Tools module
 **
 ** $QT_BEGIN_LICENSE:LGPL3$
 ** Commercial License Usage
@@ -34,45 +34,24 @@
 **
 ****************************************************************************/
 
-#ifndef QSPIRV_H
-#define QSPIRV_H
+#ifndef QTSHADERTOOLSGLOBAL_H
+#define QTSHADERTOOLSGLOBAL_H
 
-#include <QtShaderStack/qtshaderstackglobal.h>
-#include <QtCore/qstring.h>
+#include <QtCore/qglobal.h>
 
 QT_BEGIN_NAMESPACE
 
-class QIODevice;
-struct QSpirvPrivate;
-
-class Q_SHADERSTACK_EXPORT QSpirv
-{
-public:
-    enum GlslFlag {
-        GlslEs = 0x01,
-        FixClipSpace = 0x02,
-        FragDefaultMediump = 0x04
-    };
-    Q_DECLARE_FLAGS(GlslFlags, GlslFlag)
-
-    QSpirv(const QString &filename);
-    QSpirv(QIODevice *device);
-    ~QSpirv();
-
-    bool isValid() const;
-    QByteArray reflectionBinaryJson() const;
-    QByteArray reflectionJson() const;
-
-    QByteArray translateToGLSL(int version = 100, GlslFlags flags = GlslEs);
-    QByteArray translateToHLSL();
-    QByteArray translateToMSL();
-
-private:
-    Q_DISABLE_COPY(QSpirv)
-    QSpirvPrivate *d = nullptr;
-};
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(QSpirv::GlslFlags)
+#ifndef Q_SHADERTOOLS_EXPORT
+#  if !defined(QT_STATIC)
+#    if defined(QT_BUILD_SHADERTOOLS_LIB)
+#      define Q_SHADERTOOLS_EXPORT Q_DECL_EXPORT
+#    else
+#      define Q_SHADERTOOLS_EXPORT Q_DECL_IMPORT
+#    endif
+#  else
+#    define Q_SHADERTOOLS_EXPORT
+#  endif
+#endif
 
 QT_END_NAMESPACE
 

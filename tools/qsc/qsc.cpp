@@ -29,54 +29,26 @@
 #include <QtCore/qcoreapplication.h>
 #include <QtCore/qcommandlineparser.h>
 #include <QtCore/qfileinfo.h>
-#include <QtCore/qprocess.h>
-#include <QtCore/qdebug.h>
-#include "qspirv.h"
+#include <QtShaderTools/qspirvshader.h>
+#include <QtShaderTools/qspirvcompiler.h>
 
 static QString compile(const QString &fn)
 {
-    QFileInfo info(fn);
-    const QString ext = info.suffix();
-
-    QString stage;
-    if (ext == QStringLiteral("vert"))
-        stage = QStringLiteral("-fshader-stage=vertex");
-    else if (ext == QStringLiteral("frag"))
-        stage = QStringLiteral("-fshader-stage=fragment");
-    else
-        qWarning("Unknown file extension %s", qPrintable(ext));
-
-    QStringList params;
-    if (!stage.isEmpty())
-        params << stage;
-    const QString spvName = info.filePath() + QLatin1String(".spv");
-    params << QLatin1String("-o") << spvName;
-    params << fn;
-
-    QString dbg = QLatin1String("glslc");
-    for (const QString &p : params)
-        dbg += QChar(' ') + p;
-    qDebug("%s", qPrintable(dbg));
-
-    QProcess glslc;
-    QString glslcName = QLatin1String("glslc");
-    QByteArray altGlslc = qgetenv("QT_GLSLC");
-    if (!altGlslc.isEmpty())
-        glslcName = QString::fromUtf8(altGlslc);
-    glslc.start(glslcName, params);
-    if (!glslc.waitForStarted()) {
-        qWarning("Failed to start glslc. Set QT_GLSLC if glslc is not in PATH.");
+    QSpirvCompiler compiler;
+    compiler.setSourceFile(fn);
+    QByteArray spirv = compiler.compileToSpirv();
+    if (spirv.isEmpty()) {
+        qDebug("%s", qPrintable(compiler.errorMessage()));
         return QString();
     }
-    if (!glslc.waitForFinished())
-        return QString();
 
-    QByteArray outstr = glslc.readAllStandardOutput();
-    QByteArray errstr = glslc.readAllStandardError();
-    if (!outstr.isEmpty())
-        qDebug("%s", outstr.constData());
-    if (!errstr.isEmpty())
-        qDebug("%s", errstr.constData());
+    QFileInfo info(fn);
+    const QString spvName = info.filePath() + QLatin1String(".spv");
+    QFile f(spvName);
+    if (f.open(QIODevice::WriteOnly))
+        f.write(spirv);
+    else
+        qWarning("Failed to write %s", qPrintable(spvName));
 
     return spvName;
 }
@@ -122,7 +94,8 @@ int main(int argc, char **argv)
             return 1;
 
         // Read and process the SPIR-V binary.
-        QSpirv spirv(spvName);
+        QSpirvShader spirv;
+        spirv.setFileName(spvName);
         if (!spirv.isValid())
             return 1;
 
@@ -131,10 +104,10 @@ int main(int argc, char **argv)
 
         // Write out reflection info.
         const QString binReflName = outBaseName + QLatin1String(".refl");
-        if (!writeToFile(spirv.reflectionBinaryJson(), binReflName))
+        if (!writeToFile(spirv.shaderDescriptionAsBinaryJson(), binReflName))
             return 1;
         const QString textReflName = outBaseName + QLatin1String(".refl.json");
-        if (!writeToFile(spirv.reflectionJson(), textReflName, true))
+        if (!writeToFile(spirv.shaderDescriptionAsJson(), textReflName, true))
             return 1;
 
         // GLSL.
@@ -166,11 +139,11 @@ int main(int argc, char **argv)
         }
 
         for (const GLSLVersion &ver : versions) {
-            QSpirv::GlslFlags flags = 0;
+            QSpirvShader::GlslFlags flags = 0;
             if (ver.es)
-                flags |= QSpirv::GlslEs;
+                flags |= QSpirvShader::GlslEs;
             if (cmdLineParser.isSet(clipSpaceOption))
-                flags |= QSpirv::FixClipSpace;
+                flags |= QSpirvShader::FixClipSpace;
             QString glslName = outBaseName + QLatin1String(".glsl") + QString::number(ver.version);
             if (ver.es)
                 glslName += QLatin1String("es");
