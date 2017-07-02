@@ -37,9 +37,6 @@
 #include "qspirvshader.h"
 #include "qshaderdescription_p.h"
 #include <QFile>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
 
 #include "spirv_glsl.hpp"
 #include "spirv_hlsl.hpp"
@@ -53,17 +50,194 @@ struct QSpirvShaderPrivate
 
     void createGLSLCompiler();
     void processResources();
-    QJsonObject inOutObject(const spirv_cross::Resource &r);
-    void addDeco(QJsonObject *obj, const spirv_cross::Resource &r);
+
+    void addDeco(QShaderDescription::InOutVariable *v, const spirv_cross::Resource &r);
+    QShaderDescription::InOutVariable inOutVar(const spirv_cross::Resource &r);
 
     QByteArray ir;
-    QJsonDocument doc;
     QShaderDescription shaderDescription;
 
     spirv_cross::CompilerGLSL *glslGen = nullptr;
     spirv_cross::CompilerHLSL *hlslGen = nullptr;
     spirv_cross::CompilerMSL *mslGen = nullptr;
 };
+
+QSpirvShaderPrivate::~QSpirvShaderPrivate()
+{
+    delete mslGen;
+    delete hlslGen;
+    delete glslGen;
+}
+
+void QSpirvShaderPrivate::createGLSLCompiler()
+{
+    delete glslGen;
+    // ### little endian only for now
+    glslGen = new spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t *>(ir.constData()), ir.size() / 4);
+}
+
+static QShaderDescription::VarType matVarType(const spirv_cross::SPIRType &t)
+{
+    // ### ignore non-square for now
+    switch (t.vecsize) {
+    case 2:
+        return QShaderDescription::Mat2;
+    case 3:
+        return QShaderDescription::Mat3;
+    case 4:
+        return QShaderDescription::Mat4;
+    default:
+        return QShaderDescription::Unknown;
+    }
+}
+
+static QShaderDescription::VarType vecVarType(const spirv_cross::SPIRType &t)
+{
+    switch (t.vecsize) {
+    case 1:
+        return QShaderDescription::Float;
+    case 2:
+        return QShaderDescription::Vec2;
+    case 3:
+        return QShaderDescription::Vec3;
+    case 4:
+        return QShaderDescription::Vec4;
+    default:
+        return QShaderDescription::Unknown;
+    }
+}
+
+static QShaderDescription::VarType imageVarType(const spirv_cross::SPIRType &t)
+{
+    switch (t.image.dim) {
+    case spv::Dim2D:
+        return QShaderDescription::Sampler2D;
+    case spv::Dim3D:
+        return QShaderDescription::Sampler3D;
+    case spv::DimCube:
+        return QShaderDescription::SamplerCube;
+    default:
+        return QShaderDescription::Unknown;
+    }
+}
+
+static QShaderDescription::VarType varType(const spirv_cross::SPIRType &t)
+{
+    // ### needs a lot more than this
+    QShaderDescription::VarType vt = QShaderDescription::Unknown;
+    switch (t.basetype) {
+    case spirv_cross::SPIRType::Float:
+        vt = t.columns > 1 ? matVarType(t) : vecVarType(t);
+        break;
+    case spirv_cross::SPIRType::UInt:
+        vt = QShaderDescription::Uint;
+        break;
+    case spirv_cross::SPIRType::Int:
+        vt = QShaderDescription::Int;
+        break;
+    case spirv_cross::SPIRType::Boolean:
+        vt = QShaderDescription::Bool;
+        break;
+    case spirv_cross::SPIRType::SampledImage:
+        vt = imageVarType(t);
+        break;
+    default:
+        break;
+    }
+    return vt;
+}
+
+void QSpirvShaderPrivate::addDeco(QShaderDescription::InOutVariable *v, const spirv_cross::Resource &r)
+{
+    if (glslGen->has_decoration(r.id, spv::DecorationLocation))
+        v->location = glslGen->get_decoration(r.id, spv::DecorationLocation);
+    if (glslGen->has_decoration(r.id, spv::DecorationBinding))
+        v->binding = glslGen->get_decoration(r.id, spv::DecorationBinding);
+
+    // ### more decorations?
+}
+
+QShaderDescription::InOutVariable QSpirvShaderPrivate::inOutVar(const spirv_cross::Resource &r)
+{
+    QShaderDescription::InOutVariable v;
+    v.name = QString::fromStdString(r.name);
+    const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
+    v.type = varType(t);
+    addDeco(&v, r);
+    return v;
+}
+
+void QSpirvShaderPrivate::processResources()
+{
+    shaderDescription = QShaderDescription();
+    QShaderDescriptionPrivate *dd = QShaderDescriptionPrivate::get(&shaderDescription);
+
+    spirv_cross::ShaderResources resources = glslGen->get_shader_resources();
+
+  /*
+    std::vector<Resource> uniform_buffers;
+    std::vector<Resource> storage_buffers;
+    std::vector<Resource> stage_inputs;
+    std::vector<Resource> stage_outputs;
+    std::vector<Resource> subpass_inputs;
+    std::vector<Resource> storage_images;
+    std::vector<Resource> sampled_images;
+    std::vector<Resource> atomic_counters;
+    std::vector<Resource> push_constant_buffers;
+    std::vector<Resource> separate_images;
+    std::vector<Resource> separate_samplers;
+  */
+
+    for (const spirv_cross::Resource &r : resources.stage_inputs)
+        dd->inVars.append(inOutVar(r));
+
+    for (const spirv_cross::Resource &r : resources.stage_outputs)
+        dd->outVars.append(inOutVar(r));
+
+    // uniform blocks map to either a uniform buffer or a plain struct
+    for (const spirv_cross::Resource &r : resources.uniform_buffers) {
+        const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
+        QShaderDescription::UniformBlock block;
+        block.blockName = QString::fromStdString(r.name);
+        block.structName = QString::fromStdString(glslGen->get_name(r.id));
+        uint32_t idx = 0;
+        for (uint32_t memberTypeId : t.member_types) {
+            QShaderDescription::BlockVariable v;
+            v.name = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
+            v.type = varType(glslGen->get_type(memberTypeId));
+            v.offset = glslGen->type_struct_member_offset(t, idx);
+            // ### ignores a lot of things for now (arrays, decorations)
+            block.members.append(v);
+            ++idx;
+        }
+        dd->uniformBlocks.append(block);
+    }
+
+    // push constant blocks map to a plain GLSL struct regardless of version
+    for (const spirv_cross::Resource &r : resources.push_constant_buffers) {
+        const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
+        QShaderDescription::PushConstantBlock block;
+        block.name = QString::fromStdString(glslGen->get_name(r.id));
+        uint32_t idx = 0;
+        for (uint32_t memberTypeId : t.member_types) {
+            QShaderDescription::BlockVariable v;
+            v.name = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
+            v.type = varType(glslGen->get_type(memberTypeId));
+            block.members.append(v);
+            ++idx;
+        }
+        dd->pushConstantBlocks.append(block);
+    }
+
+    for (const spirv_cross::Resource &r : resources.sampled_images) {
+        const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
+        QShaderDescription::InOutVariable v;
+        v.name = QString::fromStdString(r.name);
+        v.type = varType(t);
+        addDeco(&v, r);
+        dd->combinedImageSamplers.append(v);
+    }
+}
 
 QSpirvShader::QSpirvShader()
     : d(new QSpirvShaderPrivate)
@@ -88,8 +262,6 @@ void QSpirvShader::setFileName(const QString &fileName)
 void QSpirvShader::setDevice(QIODevice *device)
 {
     d->ir = device->readAll();
-    d->createGLSLCompiler();
-    d->processResources();
 }
 
 void QSpirvShader::setSource(const QByteArray &spirv)
@@ -99,229 +271,18 @@ void QSpirvShader::setSource(const QByteArray &spirv)
     d->processResources();
 }
 
-void QSpirvShaderPrivate::createGLSLCompiler()
-{
-    delete glslGen;
-    // ### little endian only for now
-    glslGen = new spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t *>(ir.constData()), ir.size() / 4);
-}
-
-QSpirvShaderPrivate::~QSpirvShaderPrivate()
-{
-    delete mslGen;
-    delete hlslGen;
-    delete glslGen;
-}
-
-static QString matTypeStr(const spirv_cross::SPIRType &t)
-{
-    // ### ignore non-square for now
-    switch (t.vecsize) {
-    case 2:
-        return QLatin1String("mat2");
-    case 3:
-        return QLatin1String("mat3");
-    case 4:
-        return QLatin1String("mat4");
-    default:
-        return QString();
-    }
-}
-
-static QString vecTypeStr(const spirv_cross::SPIRType &t)
-{
-    switch (t.vecsize) {
-    case 1:
-        return QLatin1String("float");
-    case 2:
-        return QLatin1String("vec2");
-    case 3:
-        return QLatin1String("vec3");
-    case 4:
-        return QLatin1String("vec4");
-    default:
-        return QString();
-    }
-}
-
-static QString imageStr(const spirv_cross::SPIRType &t)
-{
-    switch (t.image.dim) {
-    case spv::Dim2D:
-        return QLatin1String("sampler2D");
-    case spv::Dim3D:
-        return QLatin1String("sampler3D");
-    case spv::DimCube:
-        return QLatin1String("samplerCube");
-    default:
-        return QString();
-    }
-}
-
-static QString typeStr(const spirv_cross::SPIRType &t)
-{
-    // ### needs a lot more than this
-    QString s;
-    switch (t.basetype) {
-    case spirv_cross::SPIRType::Float:
-        s = t.columns > 1 ? matTypeStr(t) : vecTypeStr(t);
-        break;
-    case spirv_cross::SPIRType::UInt:
-        s = QLatin1String("uint");
-        break;
-    case spirv_cross::SPIRType::Int:
-        s = QLatin1String("int");
-        break;
-    case spirv_cross::SPIRType::Boolean:
-        s = QLatin1String("bool");
-        break;
-    case spirv_cross::SPIRType::SampledImage:
-        s = imageStr(t);
-        break;
-    default:
-        break;
-    }
-    return s;
-}
-
-QJsonObject QSpirvShaderPrivate::inOutObject(const spirv_cross::Resource &r)
-{
-    QJsonObject obj;
-    obj[QLatin1String("name")] = QString::fromStdString(r.name);
-
-    const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
-    obj[QLatin1String("type")] = typeStr(t);
-
-    addDeco(&obj, r);
-
-    return obj;
-}
-
-void QSpirvShaderPrivate::addDeco(QJsonObject *obj, const spirv_cross::Resource &r)
-{
-    if (glslGen->has_decoration(r.id, spv::DecorationLocation))
-        (*obj)[QLatin1String("location")] = qint64(glslGen->get_decoration(r.id, spv::DecorationLocation));
-    if (glslGen->has_decoration(r.id, spv::DecorationBinding))
-        (*obj)[QLatin1String("binding")] = qint64(glslGen->get_decoration(r.id, spv::DecorationBinding));
-
-    // ### more decorations?
-}
-
-void QSpirvShaderPrivate::processResources()
-{
-    spirv_cross::ShaderResources resources = glslGen->get_shader_resources();
-
-/*
-    std::vector<Resource> uniform_buffers;
-    std::vector<Resource> storage_buffers;
-    std::vector<Resource> stage_inputs;
-    std::vector<Resource> stage_outputs;
-    std::vector<Resource> subpass_inputs;
-    std::vector<Resource> storage_images;
-    std::vector<Resource> sampled_images;
-    std::vector<Resource> atomic_counters;
-    std::vector<Resource> push_constant_buffers;
-    std::vector<Resource> separate_images;
-    std::vector<Resource> separate_samplers;
-  */
-
-    QJsonObject root;
-
-    QJsonArray inputs;
-    for (const spirv_cross::Resource &r : resources.stage_inputs)
-        inputs.append(inOutObject(r));
-    if (!inputs.isEmpty())
-        root[QLatin1String("inputs")] = inputs;
-
-    QJsonArray outputs;
-    for (const spirv_cross::Resource &r : resources.stage_outputs)
-        outputs.append(inOutObject(r));
-    if (!outputs.isEmpty())
-        root[QLatin1String("outputs")] = outputs;
-
-    QJsonArray uniformBuffers;
-    for (const spirv_cross::Resource &r : resources.uniform_buffers) {
-        const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
-        QJsonObject uniformBuffer;
-        uniformBuffer[QLatin1String("blockName")] = QString::fromStdString(r.name);
-        uniformBuffer[QLatin1String("structName")] = QString::fromStdString(glslGen->get_name(r.id));
-        QJsonArray members;
-        uint32_t idx = 0;
-        for (uint32_t memberTypeId : t.member_types) {
-            QJsonObject member;
-            member[QLatin1String("name")] = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
-            member[QLatin1String("type")] = typeStr(glslGen->get_type(memberTypeId));
-            member[QLatin1String("offset")] = qint64(glslGen->type_struct_member_offset(t, idx));
-            // ### ignores a lot of things for now (arrays, decorations)
-            members.append(member);
-            ++idx;
-        }
-        uniformBuffer[QLatin1String("members")] = members;
-        uniformBuffers.append(uniformBuffer);
-    }
-    if (!uniformBuffers.isEmpty())
-        root[QLatin1String("uniformBuffers")] = uniformBuffers;
-
-    QJsonArray pushConstantBlocks; // maps to a plain GLSL struct regardless of version
-    for (const spirv_cross::Resource &r : resources.push_constant_buffers) {
-        const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
-        QJsonObject pushConstantBlock;
-        pushConstantBlock[QLatin1String("name")] = QString::fromStdString(glslGen->get_name(r.id));
-        QJsonArray members;
-        uint32_t idx = 0;
-        for (uint32_t memberTypeId : t.member_types) {
-            QJsonObject member;
-            member[QLatin1String("name")] = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
-            member[QLatin1String("type")] = typeStr(glslGen->get_type(memberTypeId));
-            members.append(member);
-            ++idx;
-        }
-        pushConstantBlock[QLatin1String("members")] = members;
-        pushConstantBlocks.append(pushConstantBlock);
-    }
-    if (!pushConstantBlocks.isEmpty())
-        root[QLatin1String("pushConstantBlocks")] = pushConstantBlocks;
-
-    QJsonArray combinedSamplers;
-    for (const spirv_cross::Resource &r : resources.sampled_images) {
-        const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
-        QJsonObject sampler;
-        sampler[QLatin1String("name")] = QString::fromStdString(r.name);
-        sampler[QLatin1String("type")] = typeStr(t);
-        addDeco(&sampler, r);
-        combinedSamplers.append(sampler);
-    }
-    if (!combinedSamplers.isEmpty())
-        root[QLatin1String("combinedImageSamplers")] = combinedSamplers;
-
-    shaderDescription = QShaderDescription();
-    doc = QJsonDocument(root);
-    QShaderDescriptionPrivate::get(&shaderDescription)->setDocument(doc);
-}
-
-bool QSpirvShader::isValid() const
-{
-    return d && !d->doc.isEmpty();
-}
-
 QShaderDescription QSpirvShader::shaderDescription() const
 {
+    if (!d->shaderDescription.isValid()) {
+        d->createGLSLCompiler();
+        d->processResources();
+    }
     return d->shaderDescription;
-}
-
-QByteArray QSpirvShader::shaderDescriptionAsBinaryJson() const
-{
-    return d->doc.toBinaryData();
-}
-
-QByteArray QSpirvShader::shaderDescriptionAsJson() const
-{
-    return d->doc.toJson();
 }
 
 QByteArray QSpirvShader::translateToGLSL(int version, GlslFlags flags)
 {
-    // create a new instance since options handling seem to be problematic
+    // create a new instance every time since option handling seem to be problematic
     // (won't pick up new options on the second and subsequent compile())
     d->createGLSLCompiler();
 

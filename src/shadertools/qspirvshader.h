@@ -62,10 +62,7 @@ public:
     void setDevice(QIODevice *device);
     void setSource(const QByteArray &spirv);
 
-    bool isValid() const;
     QShaderDescription shaderDescription() const;
-    QByteArray shaderDescriptionAsBinaryJson() const;
-    QByteArray shaderDescriptionAsJson() const;
 
     QByteArray translateToGLSL(int version = 100, GlslFlags flags = GlslEs);
     QByteArray translateToHLSL();

@@ -54,7 +54,12 @@ public:
     ~QShaderDescription();
     void detach();
 
-    bool isNull() const;
+    bool isValid() const;
+
+    QByteArray toBinaryJson() const;
+    QByteArray toJson() const;
+
+    static QShaderDescription fromBinaryJson(const QByteArray &data);
 
     enum VarType {
         Unknown = 0,

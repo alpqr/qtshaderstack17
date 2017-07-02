@@ -42,6 +42,7 @@
 QT_BEGIN_NAMESPACE
 
 struct QSpirvCompilerPrivate;
+class QIODevice;
 
 class Q_SHADERTOOLS_EXPORT QSpirvCompiler
 {
@@ -63,8 +64,9 @@ public:
         ComputeStage
     };
 
-    void setSourceFile(const QString &sourceFileName);
-    void setSourceFile(const QString &sourceFileName, Stage stage);
+    void setSourceFileName(const QString &sourceFileName);
+    void setSourceFileName(const QString &sourceFileName, Stage stage);
+    void setSourceDevice(QIODevice *device, Stage stage);
     void setSourceString(const QByteArray &sourceString, Stage stage);
     void setFlags(Flags flags);
 

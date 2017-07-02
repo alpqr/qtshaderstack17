@@ -64,19 +64,19 @@ struct QShaderDescriptionPrivate
 
     QShaderDescriptionPrivate(const QShaderDescriptionPrivate *other)
         : ref(1),
-          doc(other->doc)
+          inVars(other->inVars),
+          outVars(other->outVars),
+          uniformBlocks(other->uniformBlocks),
+          pushConstantBlocks(other->pushConstantBlocks),
+          combinedImageSamplers(other->combinedImageSamplers)
     {
     }
 
     static QShaderDescriptionPrivate *get(QShaderDescription *desc) { return desc->d; }
-    void setDocument(const QJsonDocument &newDoc);
-
-    QShaderDescription::InOutVariable makeInOutVar(const QJsonObject &obj);
-    QShaderDescription::BlockVariable makeBlockVar(const QJsonObject &obj);
-    QShaderDescription::VarType mapType(const QString &t);
+    QJsonDocument makeDoc();
+    void loadDoc(const QJsonDocument &doc);
 
     QAtomicInt ref;
-    QJsonDocument doc;
 
     QVector<QShaderDescription::InOutVariable> inVars;
     QVector<QShaderDescription::InOutVariable> outVars;

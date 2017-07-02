@@ -29,6 +29,7 @@
 #include <QtCore/qcoreapplication.h>
 #include <QtCore/qcommandlineparser.h>
 #include <QtCore/qfileinfo.h>
+#include <QtCore/qdebug.h>
 #include <QtShaderTools/qspirvshader.h>
 #include <QtShaderTools/qspirvcompiler.h>
 
@@ -49,7 +50,7 @@ static bool writeToFile(const QByteArray &buf, const QString &filename, bool tex
 static QString compile(const QString &fn)
 {
     QSpirvCompiler compiler;
-    compiler.setSourceFile(fn);
+    compiler.setSourceFileName(fn);
     QByteArray spirv = compiler.compileToSpirv();
     if (spirv.isEmpty()) {
         qDebug("%s", qPrintable(compiler.errorMessage()));
@@ -93,7 +94,8 @@ int main(int argc, char **argv)
         // Read and process the SPIR-V binary.
         QSpirvShader spirv;
         spirv.setFileName(spvName);
-        if (!spirv.isValid())
+        QShaderDescription desc = spirv.shaderDescription();
+        if (!desc.isValid())
             return 1;
 
         QFileInfo info(spvName);
@@ -101,10 +103,10 @@ int main(int argc, char **argv)
 
         // Write out reflection info.
         const QString binReflName = outBaseName + QLatin1String(".refl");
-        if (!writeToFile(spirv.shaderDescriptionAsBinaryJson(), binReflName))
+        if (!writeToFile(desc.toBinaryJson(), binReflName))
             return 1;
         const QString textReflName = outBaseName + QLatin1String(".refl.json");
-        if (!writeToFile(spirv.shaderDescriptionAsJson(), textReflName, true))
+        if (!writeToFile(desc.toJson(), textReflName, true))
             return 1;
 
         // GLSL.

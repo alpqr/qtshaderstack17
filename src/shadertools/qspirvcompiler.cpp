@@ -267,7 +267,7 @@ QSpirvCompiler::~QSpirvCompiler()
     delete d;
 }
 
-void QSpirvCompiler::setSourceFile(const QString &sourceFileName)
+void QSpirvCompiler::setSourceFileName(const QString &sourceFileName)
 {
     if (!d->readFile(sourceFileName))
         return;
@@ -291,19 +291,29 @@ void QSpirvCompiler::setSourceFile(const QString &sourceFileName)
     }
 }
 
-void QSpirvCompiler::setSourceFile(const QString &sourceFileName, Stage stage)
+static inline EShLanguage mapShaderStage(QSpirvCompiler::Stage stage)
+{
+    return EShLanguage(stage);
+}
+
+void QSpirvCompiler::setSourceFileName(const QString &sourceFileName, Stage stage)
 {
     if (!d->readFile(sourceFileName))
         return;
 
-    d->stage = EShLanguage(stage);
+    d->stage = mapShaderStage(stage);
+}
+
+void QSpirvCompiler::setSourceDevice(QIODevice *device, Stage stage)
+{
+    setSourceString(device->readAll(), stage);
 }
 
 void QSpirvCompiler::setSourceString(const QByteArray &sourceString, Stage stage)
 {
     d->sourceFileName = QLatin1String("<UNKNOWN>");
     d->source = sourceString;
-    d->stage = EShLanguage(stage);
+    d->stage = mapShaderStage(stage);
 }
 
 void QSpirvCompiler::setFlags(Flags flags)
