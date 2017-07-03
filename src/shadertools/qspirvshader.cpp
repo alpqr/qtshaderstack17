@@ -55,10 +55,9 @@ struct QSpirvShaderPrivate
 
     void addDeco(QShaderDescription::InOutVariable *v, const spirv_cross::Resource &r);
     QShaderDescription::InOutVariable inOutVar(const spirv_cross::Resource &r);
-    QShaderDescription::BlockVariable blockVar(const spirv_cross::Resource &r,
-                                               uint32_t idx,
-                                               uint32_t memberTypeId,
-                                               const spirv_cross::SPIRType &t);
+    QShaderDescription::BlockVariable blockVar(uint32_t typeId,
+                                               uint32_t memberIdx,
+                                               uint32_t memberTypeId);
 
     QByteArray ir;
     QShaderDescription shaderDescription;
@@ -176,22 +175,33 @@ QShaderDescription::InOutVariable QSpirvShaderPrivate::inOutVar(const spirv_cros
     return v;
 }
 
-QShaderDescription::BlockVariable QSpirvShaderPrivate::blockVar(const spirv_cross::Resource &r,
-                                                                uint32_t idx,
-                                                                uint32_t memberTypeId,
-                                                                const spirv_cross::SPIRType &t)
+QShaderDescription::BlockVariable QSpirvShaderPrivate::blockVar(uint32_t typeId,
+                                                                uint32_t memberIdx,
+                                                                uint32_t memberTypeId)
 {
     QShaderDescription::BlockVariable v;
-    v.name = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
+    v.name = QString::fromStdString(glslGen->get_member_name(typeId, memberIdx));
 
     const spirv_cross::SPIRType &memberType(glslGen->get_type(memberTypeId));
     v.type = varType(memberType);
 
-    v.offset = glslGen->type_struct_member_offset(t, idx);
-    v.size = int(glslGen->get_declared_struct_member_size(t, idx));
+    const spirv_cross::SPIRType &t = glslGen->get_type(typeId);
+    v.offset = glslGen->type_struct_member_offset(t, memberIdx);
+    v.size = int(glslGen->get_declared_struct_member_size(t, memberIdx));
 
     for (uint32_t dimSize : memberType.array)
         v.arrayDims.append(dimSize);
+
+    if (v.type == QShaderDescription::Struct) {
+#if 0
+        uint32_t memberMemberIdx = 0;
+        for (uint32_t memberMemberType : memberType.member_types) {
+            // ###
+            // blockVar(memberTypeId, memberMemberIdx, memberMemberType) or something
+            ++memberMemberIdx;
+        }
+#endif
+    }
 
     return v;
 }
@@ -238,7 +248,7 @@ void QSpirvShaderPrivate::processResources()
         block.size = int(glslGen->get_declared_struct_size(t));
         uint32_t idx = 0;
         for (uint32_t memberTypeId : t.member_types) {
-            const QShaderDescription::BlockVariable v = blockVar(r, idx, memberTypeId, t);
+            const QShaderDescription::BlockVariable v = blockVar(r.base_type_id, idx, memberTypeId);
             ++idx;
             if (v.type != QShaderDescription::Unknown)
                 block.members.append(v);
@@ -254,7 +264,7 @@ void QSpirvShaderPrivate::processResources()
         block.size = int(glslGen->get_declared_struct_size(t));
         uint32_t idx = 0;
         for (uint32_t memberTypeId : t.member_types) {
-            const QShaderDescription::BlockVariable v = blockVar(r, idx, memberTypeId, t);
+            const QShaderDescription::BlockVariable v = blockVar(r.base_type_id, idx, memberTypeId);
             ++idx;
             if (v.type != QShaderDescription::Unknown)
                 block.members.append(v);
