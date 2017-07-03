@@ -42,6 +42,7 @@
 #include <QSpirvCompiler>
 #include <QSpirvShader>
 #include <QDebug>
+#include <QOpenGLContext>
 #include "renderwindow.h"
 #include "trianglerenderer.h"
 
@@ -102,13 +103,16 @@ int main(int argc, char **argv)
     w.show();
 
     // 3.3 core
-    QSurfaceFormat coreFmt;
-    coreFmt.setVersion(3, 3);
-    coreFmt.setProfile(QSurfaceFormat::CoreProfile);
-    RenderWindow cw(vs, fs, coreFmt);
-    cw.resize(800, 600);
-    cw.setTitle(QLatin1String("GL 3.3 core"));
-    cw.show();
+    QScopedPointer<RenderWindow> cw;
+    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
+        QSurfaceFormat coreFmt;
+        coreFmt.setVersion(3, 3);
+        coreFmt.setProfile(QSurfaceFormat::CoreProfile);
+        cw.reset(new RenderWindow(vs, fs, coreFmt));
+        cw->resize(800, 600);
+        cw->setTitle(QLatin1String("GL 3.3 core"));
+        cw->show();
+    }
 
     // Vulkan
     QVulkanInstance inst;
