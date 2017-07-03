@@ -206,7 +206,7 @@ glslang::TShader::Includer::IncludeResult *Includer::readFile(const char *header
     QString includer = QString::fromUtf8(includerName);
     if (includer.isEmpty())
         includer = QLatin1String(".");
-    QString included = QFileInfo(includer).canonicalPath() + QChar('/') + QString::fromUtf8(headerName);
+    QString included = QFileInfo(includer).canonicalPath() + QLatin1Char('/') + QString::fromUtf8(headerName);
     included = QFileInfo(included).canonicalFilePath();
     if (included.isEmpty()) {
         qWarning("QSpirvCompiler: Failed to find include file %s", headerName);

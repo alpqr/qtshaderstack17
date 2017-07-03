@@ -38,6 +38,7 @@
 #include "qshaderdescription_p.h"
 #include <QFile>
 
+#define SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS
 #include "spirv_glsl.hpp"
 #include "spirv_hlsl.hpp"
 #include "spirv_msl.hpp"

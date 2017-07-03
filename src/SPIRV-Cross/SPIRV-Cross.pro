@@ -3,9 +3,11 @@ TARGET = qtspirv-cross
 CONFIG += \
     static \
     hide_symbols \
-    exceptions_on rtti_off warn_off
+    exceptions_off rtti_off warn_off
 
 load(qt_helper_lib)
+
+DEFINES += SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS
 
 SPIRVCROSS_PATH=$$PWD/../3rdparty/SPIRV-Cross
 

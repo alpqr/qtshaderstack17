@@ -10,12 +10,12 @@ load(qt_helper_lib)
 GLSLANG_PATH=$$PWD/../3rdparty/glslang
 
 win32 {
-    DEFINES += -DGLSLANG_OSINCLUDE_WIN32
+    DEFINES += GLSLANG_OSINCLUDE_WIN32
     GLSLANG_OSDEP_PATH=$$GLSLANG_PATH/glslang/OSDependent/Windows
 }
 
 unix {
-    DEFINES += -DGLSLANG_OSINCLUDE_UNIX
+    DEFINES += GLSLANG_OSINCLUDE_UNIX
     GLSLANG_OSDEP_PATH=$$GLSLANG_PATH/glslang/OSDependent/Unix
 }
 
