@@ -37,6 +37,7 @@
 #include "qspirvshader.h"
 #include "qshaderdescription_p.h"
 #include <QFile>
+#include <QDebug>
 
 #define SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS
 #include "spirv_glsl.hpp"
@@ -54,6 +55,10 @@ struct QSpirvShaderPrivate
 
     void addDeco(QShaderDescription::InOutVariable *v, const spirv_cross::Resource &r);
     QShaderDescription::InOutVariable inOutVar(const spirv_cross::Resource &r);
+    QShaderDescription::BlockVariable blockVar(const spirv_cross::Resource &r,
+                                               uint32_t idx,
+                                               uint32_t memberTypeId,
+                                               const spirv_cross::SPIRType &t);
 
     QByteArray ir;
     QShaderDescription shaderDescription;
@@ -73,36 +78,34 @@ QSpirvShaderPrivate::~QSpirvShaderPrivate()
 void QSpirvShaderPrivate::createGLSLCompiler()
 {
     delete glslGen;
-    // ### little endian only for now
     glslGen = new spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t *>(ir.constData()), ir.size() / 4);
 }
 
-static QShaderDescription::VarType matVarType(const spirv_cross::SPIRType &t)
+static QShaderDescription::VarType matVarType(const spirv_cross::SPIRType &t, QShaderDescription::VarType compType)
 {
-    // ### ignore non-square for now
-    switch (t.vecsize) {
+    switch (t.columns) {
     case 2:
-        return QShaderDescription::Mat2;
+        return QShaderDescription::VarType(compType + 4 + (t.vecsize == 3 ? 1 : t.vecsize == 4 ? 2 : 0));
     case 3:
-        return QShaderDescription::Mat3;
+        return QShaderDescription::VarType(compType + 7 + (t.vecsize == 2 ? 1 : t.vecsize == 4 ? 2 : 0));
     case 4:
-        return QShaderDescription::Mat4;
+        return QShaderDescription::VarType(compType + 10 + (t.vecsize == 2 ? 1 : t.vecsize == 3 ? 2 : 0));
     default:
         return QShaderDescription::Unknown;
     }
 }
 
-static QShaderDescription::VarType vecVarType(const spirv_cross::SPIRType &t)
+static QShaderDescription::VarType vecVarType(const spirv_cross::SPIRType &t, QShaderDescription::VarType compType)
 {
     switch (t.vecsize) {
     case 1:
-        return QShaderDescription::Float;
+        return compType;
     case 2:
-        return QShaderDescription::Vec2;
+        return QShaderDescription::VarType(compType + 1);
     case 3:
-        return QShaderDescription::Vec3;
+        return QShaderDescription::VarType(compType + 2);
     case 4:
-        return QShaderDescription::Vec4;
+        return QShaderDescription::VarType(compType + 3);
     default:
         return QShaderDescription::Unknown;
     }
@@ -124,24 +127,30 @@ static QShaderDescription::VarType imageVarType(const spirv_cross::SPIRType &t)
 
 static QShaderDescription::VarType varType(const spirv_cross::SPIRType &t)
 {
-    // ### needs a lot more than this
     QShaderDescription::VarType vt = QShaderDescription::Unknown;
     switch (t.basetype) {
     case spirv_cross::SPIRType::Float:
-        vt = t.columns > 1 ? matVarType(t) : vecVarType(t);
+        vt = t.columns > 1 ? matVarType(t, QShaderDescription::Float) : vecVarType(t, QShaderDescription::Float);
+        break;
+    case spirv_cross::SPIRType::Double:
+        vt = t.columns > 1 ? matVarType(t, QShaderDescription::Double) : vecVarType(t, QShaderDescription::Double);
         break;
     case spirv_cross::SPIRType::UInt:
-        vt = QShaderDescription::Uint;
+        vt = vecVarType(t, QShaderDescription::Uint);
         break;
     case spirv_cross::SPIRType::Int:
-        vt = QShaderDescription::Int;
+        vt = vecVarType(t, QShaderDescription::Int);
         break;
     case spirv_cross::SPIRType::Boolean:
-        vt = QShaderDescription::Bool;
+        vt = vecVarType(t, QShaderDescription::Uint);
         break;
     case spirv_cross::SPIRType::SampledImage:
         vt = imageVarType(t);
         break;
+    case spirv_cross::SPIRType::Struct:
+        vt = QShaderDescription::Struct;
+        break;
+    // ### separate image/sampler, atomic counter, ...
     default:
         break;
     }
@@ -154,8 +163,7 @@ void QSpirvShaderPrivate::addDeco(QShaderDescription::InOutVariable *v, const sp
         v->location = glslGen->get_decoration(r.id, spv::DecorationLocation);
     if (glslGen->has_decoration(r.id, spv::DecorationBinding))
         v->binding = glslGen->get_decoration(r.id, spv::DecorationBinding);
-
-    // ### more decorations?
+    // ### other decorations?
 }
 
 QShaderDescription::InOutVariable QSpirvShaderPrivate::inOutVar(const spirv_cross::Resource &r)
@@ -168,6 +176,26 @@ QShaderDescription::InOutVariable QSpirvShaderPrivate::inOutVar(const spirv_cros
     return v;
 }
 
+QShaderDescription::BlockVariable QSpirvShaderPrivate::blockVar(const spirv_cross::Resource &r,
+                                                                uint32_t idx,
+                                                                uint32_t memberTypeId,
+                                                                const spirv_cross::SPIRType &t)
+{
+    QShaderDescription::BlockVariable v;
+    v.name = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
+
+    const spirv_cross::SPIRType &memberType(glslGen->get_type(memberTypeId));
+    v.type = varType(memberType);
+
+    v.offset = glslGen->type_struct_member_offset(t, idx);
+    v.size = int(glslGen->get_declared_struct_member_size(t, idx));
+
+    for (uint32_t dimSize : memberType.array)
+        v.arrayDims.append(dimSize);
+
+    return v;
+}
+
 void QSpirvShaderPrivate::processResources()
 {
     shaderDescription = QShaderDescription();
@@ -175,7 +203,7 @@ void QSpirvShaderPrivate::processResources()
 
     spirv_cross::ShaderResources resources = glslGen->get_shader_resources();
 
-  /*
+  /* ###
     std::vector<Resource> uniform_buffers;
     std::vector<Resource> storage_buffers;
     std::vector<Resource> stage_inputs;
@@ -189,11 +217,17 @@ void QSpirvShaderPrivate::processResources()
     std::vector<Resource> separate_samplers;
   */
 
-    for (const spirv_cross::Resource &r : resources.stage_inputs)
-        dd->inVars.append(inOutVar(r));
+    for (const spirv_cross::Resource &r : resources.stage_inputs) {
+        const QShaderDescription::InOutVariable v = inOutVar(r);
+        if (v.type != QShaderDescription::Unknown)
+            dd->inVars.append(v);
+    }
 
-    for (const spirv_cross::Resource &r : resources.stage_outputs)
-        dd->outVars.append(inOutVar(r));
+    for (const spirv_cross::Resource &r : resources.stage_outputs) {
+        const QShaderDescription::InOutVariable v = inOutVar(r);
+        if (v.type != QShaderDescription::Unknown)
+            dd->outVars.append(v);
+    }
 
     // uniform blocks map to either a uniform buffer or a plain struct
     for (const spirv_cross::Resource &r : resources.uniform_buffers) {
@@ -201,15 +235,13 @@ void QSpirvShaderPrivate::processResources()
         QShaderDescription::UniformBlock block;
         block.blockName = QString::fromStdString(r.name);
         block.structName = QString::fromStdString(glslGen->get_name(r.id));
+        block.size = int(glslGen->get_declared_struct_size(t));
         uint32_t idx = 0;
         for (uint32_t memberTypeId : t.member_types) {
-            QShaderDescription::BlockVariable v;
-            v.name = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
-            v.type = varType(glslGen->get_type(memberTypeId));
-            v.offset = glslGen->type_struct_member_offset(t, idx);
-            // ### ignores a lot of things for now (arrays, decorations)
-            block.members.append(v);
+            const QShaderDescription::BlockVariable v = blockVar(r, idx, memberTypeId, t);
             ++idx;
+            if (v.type != QShaderDescription::Unknown)
+                block.members.append(v);
         }
         dd->uniformBlocks.append(block);
     }
@@ -219,13 +251,13 @@ void QSpirvShaderPrivate::processResources()
         const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
         QShaderDescription::PushConstantBlock block;
         block.name = QString::fromStdString(glslGen->get_name(r.id));
+        block.size = int(glslGen->get_declared_struct_size(t));
         uint32_t idx = 0;
         for (uint32_t memberTypeId : t.member_types) {
-            QShaderDescription::BlockVariable v;
-            v.name = QString::fromStdString(glslGen->get_member_name(r.base_type_id, idx));
-            v.type = varType(glslGen->get_type(memberTypeId));
-            block.members.append(v);
+            const QShaderDescription::BlockVariable v = blockVar(r, idx, memberTypeId, t);
             ++idx;
+            if (v.type != QShaderDescription::Unknown)
+                block.members.append(v);
         }
         dd->pushConstantBlocks.append(block);
     }
@@ -236,7 +268,8 @@ void QSpirvShaderPrivate::processResources()
         v.name = QString::fromStdString(r.name);
         v.type = varType(t);
         addDeco(&v, r);
-        dd->combinedImageSamplers.append(v);
+        if (v.type != QShaderDescription::Unknown)
+            dd->combinedImageSamplers.append(v);
     }
 }
 

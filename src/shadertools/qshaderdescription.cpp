@@ -130,7 +130,7 @@ static struct TypeTab {
     QString k;
     QShaderDescription::VarType v;
 } typeTab[] = {
-    // ### keep in sync with qspirvshader.cpp
+    // place commonly used types first
     { QLatin1String("float"), QShaderDescription::Float },
     { QLatin1String("vec2"), QShaderDescription::Vec2 },
     { QLatin1String("vec3"), QShaderDescription::Vec3 },
@@ -138,12 +138,48 @@ static struct TypeTab {
     { QLatin1String("mat2"), QShaderDescription::Mat2 },
     { QLatin1String("mat3"), QShaderDescription::Mat3 },
     { QLatin1String("mat4"), QShaderDescription::Mat4 },
-    { QLatin1String("int"), QShaderDescription::Int },
-    { QLatin1String("uint"), QShaderDescription::Uint },
-    { QLatin1String("bool"), QShaderDescription::Bool },
+
     { QLatin1String("sampler2D"), QShaderDescription::Sampler2D },
     { QLatin1String("sampler3D"), QShaderDescription::Sampler3D },
-    { QLatin1String("samplerCube"), QShaderDescription::SamplerCube }
+    { QLatin1String("samplerCube"), QShaderDescription::SamplerCube },
+
+    { QLatin1String("struct"), QShaderDescription::Struct },
+
+    { QLatin1String("mat2x3"), QShaderDescription::Mat2x3 },
+    { QLatin1String("mat2x4"), QShaderDescription::Mat2x4 },
+    { QLatin1String("mat3x2"), QShaderDescription::Mat3x2 },
+    { QLatin1String("mat3x4"), QShaderDescription::Mat3x4 },
+    { QLatin1String("mat4x2"), QShaderDescription::Mat4x2 },
+    { QLatin1String("mat4x3"), QShaderDescription::Mat4x3 },
+
+    { QLatin1String("int"), QShaderDescription::Int },
+    { QLatin1String("ivec2"), QShaderDescription::Int2 },
+    { QLatin1String("ivec3"), QShaderDescription::Int3 },
+    { QLatin1String("ivec4"), QShaderDescription::Int4 },
+
+    { QLatin1String("uint"), QShaderDescription::Uint },
+    { QLatin1String("uvec2"), QShaderDescription::Uint2 },
+    { QLatin1String("uvec3"), QShaderDescription::Uint3 },
+    { QLatin1String("uvec4"), QShaderDescription::Uint4 },
+
+    { QLatin1String("bool"), QShaderDescription::Bool },
+    { QLatin1String("bvec2"), QShaderDescription::Bool2 },
+    { QLatin1String("bvec3"), QShaderDescription::Bool3 },
+    { QLatin1String("bvec4"), QShaderDescription::Bool4 },
+
+    { QLatin1String("double"), QShaderDescription::Double },
+    { QLatin1String("dvec2"), QShaderDescription::Double2 },
+    { QLatin1String("dvec3"), QShaderDescription::Double3 },
+    { QLatin1String("dvec4"), QShaderDescription::Double4 },
+    { QLatin1String("dmat2"), QShaderDescription::DMat2 },
+    { QLatin1String("dmat3"), QShaderDescription::DMat3 },
+    { QLatin1String("dmat4"), QShaderDescription::DMat4 },
+    { QLatin1String("dmat2x3"), QShaderDescription::DMat2x3 },
+    { QLatin1String("dmat2x4"), QShaderDescription::DMat2x4 },
+    { QLatin1String("dmat3x2"), QShaderDescription::DMat3x2 },
+    { QLatin1String("dmat3x4"), QShaderDescription::DMat3x4 },
+    { QLatin1String("dmat4x2"), QShaderDescription::DMat4x2 },
+    { QLatin1String("dmat4x3"), QShaderDescription::DMat4x3 },
 };
 
 static QString typeStr(const QShaderDescription::VarType &t)
@@ -201,21 +237,21 @@ QDebug operator<<(QDebug dbg, const QShaderDescription::BlockVariable &var)
 {
     QDebugStateSaver saver(dbg);
     dbg.nospace() << "BlockVariable(" << typeStr(var.type) << ' ' << var.name
-                  << " offset=" << var.offset << ')';
+                  << " offset=" << var.offset << " size=" << var.size << ')';
     return dbg;
 }
 
 QDebug operator<<(QDebug dbg, const QShaderDescription::UniformBlock &blk)
 {
     QDebugStateSaver saver(dbg);
-    dbg.nospace() << "UniformBlock(" << blk.blockName << ' ' << blk.structName << ' ' << blk.members << ')';
+    dbg.nospace() << "UniformBlock(" << blk.blockName << ' ' << blk.structName << " size=" << blk.size << ' ' << blk.members << ')';
     return dbg;
 }
 
 QDebug operator<<(QDebug dbg, const QShaderDescription::PushConstantBlock &blk)
 {
     QDebugStateSaver saver(dbg);
-    dbg.nospace() << "PushConstantBlock(" << blk.name << ' ' << blk.members << ')';
+    dbg.nospace() << "PushConstantBlock(" << blk.name << " size=" << blk.size << ' ' << blk.members << ')';
     return dbg;
 }
 #endif
@@ -225,12 +261,14 @@ static const QString typeKey = QLatin1String("type");
 static const QString locationKey = QLatin1String("location");
 static const QString bindingKey = QLatin1String("binding");
 static const QString offsetKey = QLatin1String("offset");
+static const QString arrayDimsKey = QLatin1String("arrayDims");
 static const QString membersKey = QLatin1String("members");
 static const QString inputsKey = QLatin1String("inputs");
 static const QString outputsKey = QLatin1String("outputs");
 static const QString uniformBlocksKey = QLatin1String("uniformBlocks");
 static const QString blockNameKey = QLatin1String("blockName");
 static const QString structNameKey = QLatin1String("structName");
+static const QString sizeKey = QLatin1String("size");
 static const QString pushConstantBlocksKey = QLatin1String("pushConstantBlocks");
 static const QString combinedImageSamplersKey = QLatin1String("combinedImageSamplers");
 
@@ -240,8 +278,6 @@ static void addDeco(QJsonObject *obj, const QShaderDescription::InOutVariable &v
         (*obj)[locationKey] = v.location;
     if (v.binding >= 0)
         (*obj)[bindingKey] = v.binding;
-
-    // ### more decorations?
 }
 
 static QJsonObject inOutObject(const QShaderDescription::InOutVariable &v)
@@ -250,6 +286,22 @@ static QJsonObject inOutObject(const QShaderDescription::InOutVariable &v)
     obj[nameKey] = v.name;
     obj[typeKey] = typeStr(v.type);
     addDeco(&obj, v);
+    return obj;
+}
+
+static QJsonObject blockMemberObject(const QShaderDescription::BlockVariable &v)
+{
+    QJsonObject obj;
+    obj[nameKey] = v.name;
+    obj[typeKey] = typeStr(v.type);
+    obj[offsetKey] = v.offset;
+    obj[sizeKey] = v.size;
+    if (!v.arrayDims.isEmpty()) {
+        QJsonArray dimArr;
+        for (int dim : v.arrayDims)
+            dimArr.append(dim);
+        obj[arrayDimsKey] = dimArr;
+    }
     return obj;
 }
 
@@ -274,17 +326,10 @@ QJsonDocument QShaderDescriptionPrivate::makeDoc()
         QJsonObject juniformBlock;
         juniformBlock[blockNameKey] = b.blockName;
         juniformBlock[structNameKey] = b.structName;
+        juniformBlock[sizeKey] = b.size;
         QJsonArray members;
-        uint32_t idx = 0;
-        for (const QShaderDescription::BlockVariable &v : b.members) {
-            QJsonObject member;
-            member[nameKey] = v.name;
-            member[typeKey] = typeStr(v.type);
-            member[offsetKey] = v.offset;
-            // ### ignores a lot of things for now (arrays, decorations)
-            members.append(member);
-            ++idx;
-        }
+        for (const QShaderDescription::BlockVariable &v : b.members)
+            members.append(blockMemberObject(v));
         juniformBlock[membersKey] = members;
         juniformBlocks.append(juniformBlock);
     }
@@ -295,15 +340,10 @@ QJsonDocument QShaderDescriptionPrivate::makeDoc()
     for (const QShaderDescription::PushConstantBlock &b : pushConstantBlocks) {
         QJsonObject jpushConstantBlock;
         jpushConstantBlock[nameKey] = b.name;
+        jpushConstantBlock[sizeKey] = b.size;
         QJsonArray members;
-        uint32_t idx = 0;
-        for (const QShaderDescription::BlockVariable &v : b.members) {
-            QJsonObject member;
-            member[nameKey] = v.name;
-            member[typeKey] = typeStr(v.type);
-            members.append(member);
-            ++idx;
-        }
+        for (const QShaderDescription::BlockVariable &v : b.members)
+            members.append(blockMemberObject(v));
         jpushConstantBlock[membersKey] = members;
         jpushConstantBlocks.append(jpushConstantBlock);
     }
@@ -341,8 +381,13 @@ static QShaderDescription::BlockVariable blockVar(const QJsonObject &obj)
     QShaderDescription::BlockVariable var;
     var.name = obj[nameKey].toString();
     var.type = mapType(obj[typeKey].toString());
-    if (obj.contains(offsetKey))
-        var.offset = obj[offsetKey].toInt();
+    var.offset = obj[offsetKey].toInt();
+    var.size = obj[sizeKey].toInt();
+    if (obj.contains(arrayDimsKey)) {
+        QJsonArray dimArr = obj[arrayDimsKey].toArray();
+        for (int i = 0; i < dimArr.count(); ++i)
+            var.arrayDims.append(dimArr.at(i).toInt());
+    }
     return var;
 }
 
@@ -382,6 +427,7 @@ void QShaderDescriptionPrivate::loadDoc(const QJsonDocument &doc)
             QShaderDescription::UniformBlock ub;
             ub.blockName = ubObj[blockNameKey].toString();
             ub.structName = ubObj[structNameKey].toString();
+            ub.size = ubObj[sizeKey].toInt();
             QJsonArray members = ubObj[membersKey].toArray();
             for (const QJsonValue &member : members)
                 ub.members.append(blockVar(member.toObject()));
@@ -395,6 +441,7 @@ void QShaderDescriptionPrivate::loadDoc(const QJsonDocument &doc)
             QJsonObject pcObj = pcs[i].toObject();
             QShaderDescription::PushConstantBlock pc;
             pc.name = pcObj[nameKey].toString();
+            pc.size = pcObj[sizeKey].toInt();
             QJsonArray members = pcObj[membersKey].toArray();
             for (const QJsonValue &member : members)
                 pc.members.append(blockVar(member.toObject()));

@@ -63,19 +63,56 @@ public:
 
     enum VarType {
         Unknown = 0,
+
+        // do not reorder
         Float,
         Vec2,
         Vec3,
         Vec4,
         Mat2,
+        Mat2x3,
+        Mat2x4,
         Mat3,
+        Mat3x2,
+        Mat3x4,
         Mat4,
+        Mat4x2,
+        Mat4x3,
+
         Int,
+        Int2,
+        Int3,
+        Int4,
+
         Uint,
+        Uint2,
+        Uint3,
+        Uint4,
+
         Bool,
+        Bool2,
+        Bool3,
+        Bool4,
+
+        Double,
+        Double2,
+        Double3,
+        Double4,
+        DMat2,
+        DMat2x3,
+        DMat2x4,
+        DMat3,
+        DMat3x2,
+        DMat3x4,
+        DMat4,
+        DMat4x2,
+        DMat4x3,
+
         Sampler2D,
         Sampler3D,
-        SamplerCube
+        SamplerCube,
+
+        Struct
     };
 
     struct InOutVariable {
@@ -89,16 +126,20 @@ public:
         QString name;
         VarType type = Unknown;
         int offset = 0;
+        int size = 0;
+        QVector<int> arrayDims;
     };
 
     struct UniformBlock {
         QString blockName;
         QString structName;
+        int size = 0;
         QVector<BlockVariable> members;
     };
 
     struct PushConstantBlock {
         QString name;
+        int size = 0;
         QVector<BlockVariable> members;
     };
 
