@@ -64,9 +64,9 @@ public:
 
     QShaderDescription shaderDescription() const;
 
-    QByteArray translateToGLSL(int version = 100, GlslFlags flags = GlslEs);
-    QByteArray translateToHLSL();
-    QByteArray translateToMSL();
+    QByteArray translateToGLSL(int version = 100, GlslFlags flags = GlslEs) const;
+    QByteArray translateToHLSL() const;
+    QByteArray translateToMSL() const;
 
 private:
     Q_DISABLE_COPY(QSpirvShader)

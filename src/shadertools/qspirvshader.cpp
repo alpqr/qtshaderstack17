@@ -279,7 +279,7 @@ QShaderDescription QSpirvShader::shaderDescription() const
     return d->shaderDescription;
 }
 
-QByteArray QSpirvShader::translateToGLSL(int version, GlslFlags flags)
+QByteArray QSpirvShader::translateToGLSL(int version, GlslFlags flags) const
 {
     // create a new instance every time since option handling seem to be problematic
     // (won't pick up new options on the second and subsequent compile())
@@ -311,7 +311,7 @@ QByteArray QSpirvShader::translateToGLSL(int version, GlslFlags flags)
     return src;
 }
 
-QByteArray QSpirvShader::translateToHLSL()
+QByteArray QSpirvShader::translateToHLSL() const
 {
     if (!d->hlslGen)
         d->hlslGen = new spirv_cross::CompilerHLSL(reinterpret_cast<const uint32_t *>(d->ir.constData()), d->ir.size() / 4);
@@ -321,7 +321,7 @@ QByteArray QSpirvShader::translateToHLSL()
     return QByteArray::fromStdString(hlsl);
 }
 
-QByteArray QSpirvShader::translateToMSL()
+QByteArray QSpirvShader::translateToMSL() const
 {
     if (!d->mslGen)
         d->mslGen = new spirv_cross::CompilerMSL(reinterpret_cast<const uint32_t *>(d->ir.constData()), d->ir.size() / 4);
