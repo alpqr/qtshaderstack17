@@ -26,7 +26,7 @@
  **
  ****************************************************************************/
 
-// This application ships with a Vulkan-style GLSL shaders.
+// This application ships with Vulkan-style GLSL shaders.
 //
 // Let's run these through the shadertools infra to get:
 //   - A SPIR-V binary suitable for Vulkan
@@ -34,14 +34,36 @@
 //   - GLSL 120 or GLSL ES 100 for non-core context
 //   - reflection info
 //
-// Then open two OpenGL windows and use the two GLSL shaders (taking the uniform
-// buffer vs. struct differences into account).
+// Then open two OpenGL windows and use the two GLSL shaders (taking the
+// uniform buffer vs. struct differences into account), and a Vulkan window
+// that uses the SPIR-V binary.
 
 #include <QGuiApplication>
 #include <QSpirvCompiler>
 #include <QSpirvShader>
 #include <QDebug>
 #include "renderwindow.h"
+#include "trianglerenderer.h"
+
+class VulkanWindow : public QVulkanWindow
+{
+public:
+    VulkanWindow(const QByteArray &vs, const QByteArray &fs)
+        : m_vs(vs),
+          m_fs(fs)
+    { }
+
+    QVulkanWindowRenderer *createRenderer() override;
+
+private:
+    QByteArray m_vs;
+    QByteArray m_fs;
+};
+
+QVulkanWindowRenderer *VulkanWindow::createRenderer()
+{
+    return new TriangleRenderer(this, m_vs, m_fs, true);
+}
 
 int main(int argc, char **argv)
 {
@@ -72,17 +94,33 @@ int main(int argc, char **argv)
     // Now we have SPIR-V binaries that can be reflected and converted.
     // The rest of the magic is done in RenderWindow::init().
 
+    // GL 2.0-compatible context
     QSurfaceFormat fmt;
     RenderWindow w(vs, fs, fmt);
-    w.resize(1024, 768);
+    w.resize(800, 600);
+    w.setTitle(QLatin1String("GL 2"));
     w.show();
 
+    // 3.3 core
     QSurfaceFormat coreFmt;
     coreFmt.setVersion(3, 3);
     coreFmt.setProfile(QSurfaceFormat::CoreProfile);
     RenderWindow cw(vs, fs, coreFmt);
-    cw.resize(1024, 768);
+    cw.resize(800, 600);
+    cw.setTitle(QLatin1String("GL 3.3 core"));
     cw.show();
+
+    // Vulkan
+    QVulkanInstance inst;
+    VulkanWindow vkw(vertSpv, fragSpv);
+    if (inst.create()) {
+        vkw.setVulkanInstance(&inst);
+        vkw.resize(800, 600);
+        vkw.setTitle(QLatin1String("Vulkan"));
+        vkw.show();
+    } else {
+        qDebug("Vulkan not supported");
+    }
 
     return app.exec();
 }
