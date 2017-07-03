@@ -78,7 +78,7 @@ void RenderWindow::exposeEvent(QExposeEvent *)
 }
 
 static GLfloat vertices[] = {
-    0.0f, 0.707f,
+    0.0f, 0.5f,
     -0.5f, -0.5f,
     0.5f, -0.5f
 };
@@ -190,8 +190,8 @@ void RenderWindow::render()
 
     m_program->bind();
     QMatrix4x4 matrix;
-    matrix.perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-    matrix.translate(0.0f, 0.0f, -2.0f);
+    matrix.perspective(45.0f, width() / float(height()), 0.01f, 100.0f);
+    matrix.translate(0.0f, 0.0f, -4.0f);
     matrix.rotate(m_angle, 0.0f, 1.0f, 0.0f);
 
     if (m_vao.isCreated())
