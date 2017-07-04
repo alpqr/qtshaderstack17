@@ -1,58 +1,15 @@
-Note: Master is a bit out of date now, check the https://github.com/alpqr/qtshaderstack17/tree/newapi branch instead, with glslang integrated, better APIs, etc.
-
 
 Experiments for more modern graphics shader management in future Qt
 ===================================================================
 
-Built on top of https://github.com/KhronosGroup/SPIRV-Cross
+1. Check out https://github.com/KhronosGroup/SPIRV-Cross and https://github.com/KhronosGroup/glslang under src/3rdparty
 
-Note: expects SPIRV-Cross to be checked out under src/3rdparty
+2. qmake && (n)make
 
-See https://github.com/alpqr/qtshaderstack17/blob/master/shaderstack.txt for vision and motivation.
+3. QT += shadertools
 
-All APIs are WIP. To manually run qsc, glslc needs to be in the PATH.
-Alternatively, set QT_GLSLC, for example: export QT_GLSLC=~/android-ndk-r13b/shader-tools/linux-x86_64/glslc
+4. Use QSpirvCompiler to compile (Vulkan-flavored) GLSL to SPIR-V.
 
-For instance, going to test/playground and running "qsc color_phong.frag" results in:
+5. Use QSpirvShader parse a SPIR-V binary to get reflection data and to translate to GLSL suitable for various OpenGL (ES) versions.
 
- * color_phong.frag.spv -> SPIR-V binary
- * color_phong.frag.refl.json -> reflection data (text, for debugging)
- * color_phong.frag.refl -> binary JSON version (binary, to be deployed/loaded at runtime)
- * color_phong.frag.glsl100es -> SPIRV-Cross' translation to GLSL ES 100
- * color_phong.frag.glsl120 -> SPIRV-Cross' translation to GLSL 120
- * color_phong.frag.glsl330 -> SPIRV-Cross' translation to GLSL 330
-
-See qsc --help for configuration options.
-
-It's not hard to see where this is going. Once qsc generated the stuff at build
-time, we can include it in the resource system and do things like:
-
-```
-QShader vs(QLatin1String(":/color.vert")); // just the common prefix (this file itself does not actually exist)
-QShader fs(QLatin1String(":/color.frag"));
-
-qDebug() << vs.availableGlslVersions();
-qDebug() << fs.availableGlslVersions();
-
-QSurfaceFormat fmt;
-...
-
-// Picks the right variant depending on the profile, version, etc.
-// Can be passed as-is to QOpenGLShaderProgram::addShaderFromSourceCode()
-QByteArray vertexShaderSource = vs.glsl(fmt);
-
-QByteArray shaderBlob = vs.spirv(); // can be passed as-is to Vulkan
-
-QShaderDescription desc = vs.description(); // reflection: in/out vars, uniform blocks, samplers, ...
-for (auto ub : desc.uniformBlocks()) {
-    // ub.name()
-    for (auto var : ub.members())
-        // var.name(), var.type(), var.offset(), ...
-}
-```
-
-Check https://github.com/alpqr/qtshaderstack17/tree/master/tests/manual/qshader
-for a basic example that opens two OpenGL windows: one requesting a plain 2.0+
-context and one using 3.3+ core. With the new infrastructure the shaders are
-written only once (color.vert, color.frag) and it's all Vulkan-compatible GLSL
-so also suitable for APIs other than GL.
+6. The reflection data (QShaderDescription) can also be serialized to binary and human-readable JSON, and deserialized from binary JSON.
