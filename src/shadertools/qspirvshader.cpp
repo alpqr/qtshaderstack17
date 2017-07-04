@@ -53,7 +53,6 @@ struct QSpirvShaderPrivate
     void createGLSLCompiler();
     void processResources();
 
-    void addDeco(QShaderDescription::InOutVariable *v, const spirv_cross::Resource &r);
     QShaderDescription::InOutVariable inOutVar(const spirv_cross::Resource &r);
     QShaderDescription::BlockVariable blockVar(uint32_t typeId,
                                                uint32_t memberIdx,
@@ -156,22 +155,20 @@ static QShaderDescription::VarType varType(const spirv_cross::SPIRType &t)
     return vt;
 }
 
-void QSpirvShaderPrivate::addDeco(QShaderDescription::InOutVariable *v, const spirv_cross::Resource &r)
-{
-    if (glslGen->has_decoration(r.id, spv::DecorationLocation))
-        v->location = glslGen->get_decoration(r.id, spv::DecorationLocation);
-    if (glslGen->has_decoration(r.id, spv::DecorationBinding))
-        v->binding = glslGen->get_decoration(r.id, spv::DecorationBinding);
-    // ### other decorations?
-}
-
 QShaderDescription::InOutVariable QSpirvShaderPrivate::inOutVar(const spirv_cross::Resource &r)
 {
     QShaderDescription::InOutVariable v;
     v.name = QString::fromStdString(r.name);
+
     const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
     v.type = varType(t);
-    addDeco(&v, r);
+
+    if (glslGen->has_decoration(r.id, spv::DecorationLocation))
+        v.location = glslGen->get_decoration(r.id, spv::DecorationLocation);
+
+    if (glslGen->has_decoration(r.id, spv::DecorationBinding))
+        v.binding = glslGen->get_decoration(r.id, spv::DecorationBinding);
+
     return v;
 }
 
@@ -192,15 +189,18 @@ QShaderDescription::BlockVariable QSpirvShaderPrivate::blockVar(uint32_t typeId,
     for (uint32_t dimSize : memberType.array)
         v.arrayDims.append(dimSize);
 
+    if (glslGen->has_member_decoration(typeId, memberIdx, spv::DecorationArrayStride))
+        v.arrayStride = glslGen->type_struct_member_array_stride(t, memberIdx);
+
+    if (glslGen->has_member_decoration(typeId, memberIdx, spv::DecorationMatrixStride))
+        v.matrixStride = glslGen->type_struct_member_matrix_stride(t, memberIdx);
+
     if (v.type == QShaderDescription::Struct) {
-#if 0
         uint32_t memberMemberIdx = 0;
         for (uint32_t memberMemberType : memberType.member_types) {
-            // ###
-            // blockVar(memberTypeId, memberMemberIdx, memberMemberType) or something
+            v.structMembers.append(blockVar(memberType.self, memberMemberIdx, memberMemberType));
             ++memberMemberIdx;
         }
-#endif
     }
 
     return v;
@@ -273,11 +273,7 @@ void QSpirvShaderPrivate::processResources()
     }
 
     for (const spirv_cross::Resource &r : resources.sampled_images) {
-        const spirv_cross::SPIRType &t = glslGen->get_type(r.base_type_id);
-        QShaderDescription::InOutVariable v;
-        v.name = QString::fromStdString(r.name);
-        v.type = varType(t);
-        addDeco(&v, r);
+        const QShaderDescription::InOutVariable v = inOutVar(r);
         if (v.type != QShaderDescription::Unknown)
             dd->combinedImageSamplers.append(v);
     }

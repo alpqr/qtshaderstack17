@@ -128,6 +128,9 @@ public:
         int offset = 0;
         int size = 0;
         QVector<int> arrayDims;
+        int arrayStride = 0;
+        int matrixStride = 0;
+        QVector<BlockVariable> structMembers;
     };
 
     struct UniformBlock {

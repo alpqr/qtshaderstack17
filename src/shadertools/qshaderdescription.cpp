@@ -237,7 +237,16 @@ QDebug operator<<(QDebug dbg, const QShaderDescription::BlockVariable &var)
 {
     QDebugStateSaver saver(dbg);
     dbg.nospace() << "BlockVariable(" << typeStr(var.type) << ' ' << var.name
-                  << " offset=" << var.offset << " size=" << var.size << ')';
+                  << " offset=" << var.offset << " size=" << var.size;
+    if (!var.arrayDims.isEmpty())
+        dbg.nospace() << " array=" << var.arrayDims;
+    if (var.arrayStride)
+        dbg.nospace() << " arrayStride=" << var.arrayStride;
+    if (var.matrixStride)
+        dbg.nospace() << " matrixStride=" << var.matrixStride;
+    if (!var.structMembers.isEmpty())
+        dbg.nospace() << " structMembers=" << var.structMembers;
+    dbg.nospace() << ')';
     return dbg;
 }
 
@@ -262,6 +271,9 @@ static const QString locationKey = QLatin1String("location");
 static const QString bindingKey = QLatin1String("binding");
 static const QString offsetKey = QLatin1String("offset");
 static const QString arrayDimsKey = QLatin1String("arrayDims");
+static const QString arrayStrideKey = QLatin1String("arrayStride");
+static const QString matrixStrideKey = QLatin1String("matrixStride");
+static const QString structMembersKey = QLatin1String("structMembers");
 static const QString membersKey = QLatin1String("members");
 static const QString inputsKey = QLatin1String("inputs");
 static const QString outputsKey = QLatin1String("outputs");
@@ -301,6 +313,16 @@ static QJsonObject blockMemberObject(const QShaderDescription::BlockVariable &v)
         for (int dim : v.arrayDims)
             dimArr.append(dim);
         obj[arrayDimsKey] = dimArr;
+    }
+    if (v.arrayStride)
+        obj[arrayStrideKey] = v.arrayStride;
+    if (v.matrixStride)
+        obj[matrixStrideKey] = v.matrixStride;
+    if (!v.structMembers.isEmpty()) {
+        QJsonArray arr;
+        for (const QShaderDescription::BlockVariable &sv : v.structMembers)
+            arr.append(blockMemberObject(sv));
+        obj[structMembersKey] = arr;
     }
     return obj;
 }
@@ -387,6 +409,15 @@ static QShaderDescription::BlockVariable blockVar(const QJsonObject &obj)
         QJsonArray dimArr = obj[arrayDimsKey].toArray();
         for (int i = 0; i < dimArr.count(); ++i)
             var.arrayDims.append(dimArr.at(i).toInt());
+    }
+    if (obj.contains(arrayStrideKey))
+        var.arrayStride = obj[arrayStrideKey].toInt();
+    if (obj.contains(matrixStrideKey))
+        var.matrixStride = obj[matrixStrideKey].toInt();
+    if (obj.contains(structMembersKey)) {
+        QJsonArray arr = obj[structMembersKey].toArray();
+        for (int i = 0; i < arr.count(); ++i)
+            var.structMembers.append(blockVar(arr.at(i).toObject()));
     }
     return var;
 }
