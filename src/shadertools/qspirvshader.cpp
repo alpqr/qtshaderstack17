@@ -112,12 +112,16 @@ static QShaderDescription::VarType vecVarType(const spirv_cross::SPIRType &t, QS
 static QShaderDescription::VarType imageVarType(const spirv_cross::SPIRType &t)
 {
     switch (t.image.dim) {
+    case spv::Dim1D:
+        return t.image.arrayed ? QShaderDescription::Sampler1DArray : QShaderDescription::Sampler1D;
     case spv::Dim2D:
-        return QShaderDescription::Sampler2D;
+        return t.image.arrayed
+                ? (t.image.ms ? QShaderDescription::Sampler2DMSArray : QShaderDescription::Sampler2DArray)
+                : (t.image.ms ? QShaderDescription::Sampler2DMS : QShaderDescription::Sampler2D);
     case spv::Dim3D:
-        return QShaderDescription::Sampler3D;
+        return t.image.arrayed ? QShaderDescription::Sampler3DArray : QShaderDescription::Sampler3D;
     case spv::DimCube:
-        return QShaderDescription::SamplerCube;
+        return t.image.arrayed ? QShaderDescription::SamplerCubeArray : QShaderDescription::SamplerCube;
     default:
         return QShaderDescription::Unknown;
     }
@@ -194,6 +198,9 @@ QShaderDescription::BlockVariable QSpirvShaderPrivate::blockVar(uint32_t typeId,
 
     if (glslGen->has_member_decoration(typeId, memberIdx, spv::DecorationMatrixStride))
         v.matrixStride = glslGen->type_struct_member_matrix_stride(t, memberIdx);
+
+    if (glslGen->has_member_decoration(typeId, memberIdx, spv::DecorationRowMajor))
+        v.matrixIsRowMajor = true;
 
     if (v.type == QShaderDescription::Struct) {
         uint32_t memberMemberIdx = 0;

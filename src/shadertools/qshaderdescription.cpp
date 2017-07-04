@@ -130,7 +130,6 @@ static struct TypeTab {
     QString k;
     QShaderDescription::VarType v;
 } typeTab[] = {
-    // place commonly used types first
     { QLatin1String("float"), QShaderDescription::Float },
     { QLatin1String("vec2"), QShaderDescription::Vec2 },
     { QLatin1String("vec3"), QShaderDescription::Vec3 },
@@ -139,11 +138,18 @@ static struct TypeTab {
     { QLatin1String("mat3"), QShaderDescription::Mat3 },
     { QLatin1String("mat4"), QShaderDescription::Mat4 },
 
+    { QLatin1String("struct"), QShaderDescription::Struct },
+
+    { QLatin1String("sampler1D"), QShaderDescription::Sampler1D },
     { QLatin1String("sampler2D"), QShaderDescription::Sampler2D },
+    { QLatin1String("sampler2DMS"), QShaderDescription::Sampler2DMS },
     { QLatin1String("sampler3D"), QShaderDescription::Sampler3D },
     { QLatin1String("samplerCube"), QShaderDescription::SamplerCube },
-
-    { QLatin1String("struct"), QShaderDescription::Struct },
+    { QLatin1String("sampler1DArray"), QShaderDescription::Sampler1DArray },
+    { QLatin1String("sampler2DArray"), QShaderDescription::Sampler2DArray },
+    { QLatin1String("sampler2DMSArray"), QShaderDescription::Sampler2DMSArray },
+    { QLatin1String("sampler3DArray"), QShaderDescription::Sampler3DArray },
+    { QLatin1String("samplerCubeArray"), QShaderDescription::SamplerCubeArray },
 
     { QLatin1String("mat2x3"), QShaderDescription::Mat2x3 },
     { QLatin1String("mat2x4"), QShaderDescription::Mat2x4 },
@@ -244,6 +250,8 @@ QDebug operator<<(QDebug dbg, const QShaderDescription::BlockVariable &var)
         dbg.nospace() << " arrayStride=" << var.arrayStride;
     if (var.matrixStride)
         dbg.nospace() << " matrixStride=" << var.matrixStride;
+    if (var.matrixIsRowMajor)
+        dbg.nospace() << " [rowmaj]";
     if (!var.structMembers.isEmpty())
         dbg.nospace() << " structMembers=" << var.structMembers;
     dbg.nospace() << ')';
@@ -273,6 +281,7 @@ static const QString offsetKey = QLatin1String("offset");
 static const QString arrayDimsKey = QLatin1String("arrayDims");
 static const QString arrayStrideKey = QLatin1String("arrayStride");
 static const QString matrixStrideKey = QLatin1String("matrixStride");
+static const QString matrixRowMajorKey = QLatin1String("matrixRowMajor");
 static const QString structMembersKey = QLatin1String("structMembers");
 static const QString membersKey = QLatin1String("members");
 static const QString inputsKey = QLatin1String("inputs");
@@ -318,6 +327,8 @@ static QJsonObject blockMemberObject(const QShaderDescription::BlockVariable &v)
         obj[arrayStrideKey] = v.arrayStride;
     if (v.matrixStride)
         obj[matrixStrideKey] = v.matrixStride;
+    if (v.matrixIsRowMajor)
+        obj[matrixRowMajorKey] = true;
     if (!v.structMembers.isEmpty()) {
         QJsonArray arr;
         for (const QShaderDescription::BlockVariable &sv : v.structMembers)
@@ -414,6 +425,8 @@ static QShaderDescription::BlockVariable blockVar(const QJsonObject &obj)
         var.arrayStride = obj[arrayStrideKey].toInt();
     if (obj.contains(matrixStrideKey))
         var.matrixStride = obj[matrixStrideKey].toInt();
+    if (obj.contains(matrixRowMajorKey))
+        var.matrixIsRowMajor = obj[matrixRowMajorKey].toBool();
     if (obj.contains(structMembersKey)) {
         QJsonArray arr = obj[structMembersKey].toArray();
         for (int i = 0; i < arr.count(); ++i)

@@ -108,9 +108,16 @@ public:
         DMat4x2,
         DMat4x3,
 
+        Sampler1D,
         Sampler2D,
+        Sampler2DMS,
         Sampler3D,
         SamplerCube,
+        Sampler1DArray,
+        Sampler2DArray,
+        Sampler2DMSArray,
+        Sampler3DArray,
+        SamplerCubeArray,
 
         Struct
     };
@@ -130,6 +137,7 @@ public:
         QVector<int> arrayDims;
         int arrayStride = 0;
         int matrixStride = 0;
+        bool matrixIsRowMajor = false;
         QVector<BlockVariable> structMembers;
     };
 

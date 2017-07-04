@@ -21,6 +21,7 @@ layout(std140, binding = 1) uniform buf {
     vec3 ks;
     Light lights[MAX_LIGHTS];
     int numLights;
+    layout(row_major) mat3 mm;
 } ubuf;
 
 layout(location = 0) out vec4 fragColor;
