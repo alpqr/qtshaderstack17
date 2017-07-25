@@ -4,12 +4,15 @@ QT += shadertools
 
 SOURCES = \
     main.cpp \
-    renderwindow.cpp \
-    trianglerenderer.cpp
+    renderwindow.cpp
 
 HEADERS = \
-    renderwindow.h \
-    trianglerenderer.h
+    renderwindow.h
+
+qtConfig(vulkan) {
+    SOURCES += trianglerenderer.cpp
+    HEADERS += trianglerenderer.h
+}
 
 RESOURCES = tri.qrc
 

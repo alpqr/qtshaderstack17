@@ -44,6 +44,8 @@
 #include <QDebug>
 #include <QOpenGLContext>
 #include "renderwindow.h"
+
+#if QT_CONFIG(vulkan)
 #include "trianglerenderer.h"
 
 class VulkanWindow : public QVulkanWindow
@@ -65,6 +67,7 @@ QVulkanWindowRenderer *VulkanWindow::createRenderer()
 {
     return new TriangleRenderer(this, m_vs, m_fs, true);
 }
+#endif // vulkan
 
 int main(int argc, char **argv)
 {
@@ -115,6 +118,7 @@ int main(int argc, char **argv)
     }
 
     // Vulkan
+#if QT_CONFIG(vulkan)
     QVulkanInstance inst;
     VulkanWindow vkw(vertSpv, fragSpv);
     if (inst.create()) {
@@ -125,6 +129,7 @@ int main(int argc, char **argv)
     } else {
         qDebug("Vulkan not supported");
     }
+#endif
 
     return app.exec();
 }
