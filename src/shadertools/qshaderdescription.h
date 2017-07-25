@@ -122,11 +122,14 @@ public:
         Struct
     };
 
+    // Optional data (like decorations) usually default to an otherwise invalid value (-1 or 0). This is intentional.
+
     struct InOutVariable {
         QString name;
         VarType type = Unknown;
         int location = -1;
         int binding = -1;
+        int descriptorSet = -1;
     };
 
     struct BlockVariable {
@@ -145,6 +148,8 @@ public:
         QString blockName;
         QString structName;
         int size = 0;
+        int binding = -1;
+        int descriptorSet = -1;
         QVector<BlockVariable> members;
     };
 

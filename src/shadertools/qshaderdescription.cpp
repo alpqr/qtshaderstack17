@@ -235,6 +235,8 @@ QDebug operator<<(QDebug dbg, const QShaderDescription::InOutVariable &var)
         dbg.nospace() << " location=" << var.location;
     if (var.binding >= 0)
         dbg.nospace() << " binding=" << var.binding;
+    if (var.descriptorSet >= 0)
+        dbg.nospace() << " set=" << var.descriptorSet;
     dbg.nospace() << ')';
     return dbg;
 }
@@ -261,7 +263,12 @@ QDebug operator<<(QDebug dbg, const QShaderDescription::BlockVariable &var)
 QDebug operator<<(QDebug dbg, const QShaderDescription::UniformBlock &blk)
 {
     QDebugStateSaver saver(dbg);
-    dbg.nospace() << "UniformBlock(" << blk.blockName << ' ' << blk.structName << " size=" << blk.size << ' ' << blk.members << ')';
+    dbg.nospace() << "UniformBlock(" << blk.blockName << ' ' << blk.structName << " size=" << blk.size;
+    if (blk.binding >= 0)
+        dbg.nospace() << " binding=" << blk.binding;
+    if (blk.descriptorSet >= 0)
+        dbg.nospace() << " set=" << blk.descriptorSet;
+    dbg.nospace() << ' ' << blk.members << ')';
     return dbg;
 }
 
@@ -277,6 +284,7 @@ static const QString nameKey = QLatin1String("name");
 static const QString typeKey = QLatin1String("type");
 static const QString locationKey = QLatin1String("location");
 static const QString bindingKey = QLatin1String("binding");
+static const QString setKey = QLatin1String("set");
 static const QString offsetKey = QLatin1String("offset");
 static const QString arrayDimsKey = QLatin1String("arrayDims");
 static const QString arrayStrideKey = QLatin1String("arrayStride");
@@ -299,6 +307,8 @@ static void addDeco(QJsonObject *obj, const QShaderDescription::InOutVariable &v
         (*obj)[locationKey] = v.location;
     if (v.binding >= 0)
         (*obj)[bindingKey] = v.binding;
+    if (v.descriptorSet >= 0)
+        (*obj)[setKey] = v.descriptorSet;
 }
 
 static QJsonObject inOutObject(const QShaderDescription::InOutVariable &v)
@@ -360,6 +370,10 @@ QJsonDocument QShaderDescriptionPrivate::makeDoc()
         juniformBlock[blockNameKey] = b.blockName;
         juniformBlock[structNameKey] = b.structName;
         juniformBlock[sizeKey] = b.size;
+        if (b.binding >= 0)
+            juniformBlock[bindingKey] = b.binding;
+        if (b.descriptorSet >= 0)
+            juniformBlock[setKey] = b.descriptorSet;
         QJsonArray members;
         for (const QShaderDescription::BlockVariable &v : b.members)
             members.append(blockMemberObject(v));
@@ -406,6 +420,8 @@ static QShaderDescription::InOutVariable inOutVar(const QJsonObject &obj)
         var.location = obj[locationKey].toInt();
     if (obj.contains(bindingKey))
         var.binding = obj[bindingKey].toInt();
+    if (obj.contains(setKey))
+        var.descriptorSet = obj[setKey].toInt();
     return var;
 }
 
@@ -472,6 +488,10 @@ void QShaderDescriptionPrivate::loadDoc(const QJsonDocument &doc)
             ub.blockName = ubObj[blockNameKey].toString();
             ub.structName = ubObj[structNameKey].toString();
             ub.size = ubObj[sizeKey].toInt();
+            if (ubObj.contains(bindingKey))
+                ub.binding = ubObj[bindingKey].toInt();
+            if (ubObj.contains(setKey))
+                ub.descriptorSet = ubObj[setKey].toInt();
             QJsonArray members = ubObj[membersKey].toArray();
             for (const QJsonValue &member : members)
                 ub.members.append(blockVar(member.toObject()));

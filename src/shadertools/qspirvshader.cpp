@@ -173,6 +173,9 @@ QShaderDescription::InOutVariable QSpirvShaderPrivate::inOutVar(const spirv_cros
     if (glslGen->has_decoration(r.id, spv::DecorationBinding))
         v.binding = glslGen->get_decoration(r.id, spv::DecorationBinding);
 
+    if (glslGen->has_decoration(r.id, spv::DecorationDescriptorSet))
+        v.descriptorSet = glslGen->get_decoration(r.id, spv::DecorationDescriptorSet);
+
     return v;
 }
 
@@ -253,6 +256,10 @@ void QSpirvShaderPrivate::processResources()
         block.blockName = QString::fromStdString(r.name);
         block.structName = QString::fromStdString(glslGen->get_name(r.id));
         block.size = int(glslGen->get_declared_struct_size(t));
+        if (glslGen->has_decoration(r.id, spv::DecorationBinding))
+            block.binding = glslGen->get_decoration(r.id, spv::DecorationBinding);
+        if (glslGen->has_decoration(r.id, spv::DecorationDescriptorSet))
+            block.descriptorSet = glslGen->get_decoration(r.id, spv::DecorationDescriptorSet);
         uint32_t idx = 0;
         for (uint32_t memberTypeId : t.member_types) {
             const QShaderDescription::BlockVariable v = blockVar(r.base_type_id, idx, memberTypeId);
