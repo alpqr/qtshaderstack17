@@ -103,8 +103,10 @@ void RenderWindow::init()
         version = 330;
 
     QSpirvShader::GlslFlags flags = 0;
-    if (es)
+    if (es) {
+        version = 100;
         flags |= QSpirvShader::GlslEs;
+    }
 
     const QByteArray vertexShaderSource = m_vs.translateToGLSL(version, flags);
     const QByteArray fragmentShaderSource = m_fs.translateToGLSL(version, flags);
