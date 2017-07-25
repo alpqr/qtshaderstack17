@@ -7,10 +7,7 @@ CONFIG += \
 
 load(qt_helper_lib)
 
-GLSLANG_PATH=$$PWD/../3rdparty/glslang
-
-win32: DEFINES += GLSLANG_OSINCLUDE_WIN32
-unix: DEFINES += GLSLANG_OSINCLUDE_UNIX
+include($$PWD/glslang_common.pri)
 
 SOURCES += \
     $$GLSLANG_PATH/glslang/MachineIndependent/glslang_tab.cpp \
