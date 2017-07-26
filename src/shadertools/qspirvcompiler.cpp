@@ -35,6 +35,7 @@
 ****************************************************************************/
 
 #include "qspirvcompiler.h"
+#include "qshaderbatchablerewriter_p.h"
 #include <QFile>
 #include <QFileInfo>
 
@@ -147,6 +148,7 @@ struct QSpirvCompilerPrivate
 
     QString sourceFileName;
     QByteArray source;
+    QByteArray batchableSource;
     EShLanguage stage = EShLangVertex;
     QSpirvCompiler::Flags flags = 0;
     QByteArray spirv;
@@ -161,6 +163,7 @@ bool QSpirvCompilerPrivate::readFile(const QString &fn)
         return false;
     }
     source = f.readAll();
+    batchableSource.clear();
     sourceFileName = fn;
     f.close();
     return true;
@@ -234,7 +237,9 @@ bool QSpirvCompilerPrivate::compile()
 {
     log.clear();
 
-    if (source.isEmpty())
+    const bool useBatchable = (stage == EShLangVertex && flags.testFlag(QSpirvCompiler::RewriteToMakeBatchableForSG));
+    const QByteArray *actualSource = useBatchable ? &batchableSource : &source;
+    if (actualSource->isEmpty())
         return false;
 
     static GlobalInit globalInit;
@@ -242,8 +247,8 @@ bool QSpirvCompilerPrivate::compile()
     glslang::TShader shader(stage);
     const QByteArray fn = sourceFileName.toUtf8();
     const char *fnStr = fn.constData();
-    const char *srcStr = source.constData();
-    const int size = source.size();
+    const char *srcStr = actualSource->constData();
+    const int size = actualSource->size();
     shader.setStringsWithLengthsAndNames(&srcStr, &size, &fnStr, 1);
 
     if (!flags.testFlag(QSpirvCompiler::UseOpenGLRules)) {
@@ -340,6 +345,7 @@ void QSpirvCompiler::setSourceString(const QByteArray &sourceString, Stage stage
 {
     d->sourceFileName = fileName; // for error messages, include handling, etc.
     d->source = sourceString;
+    d->batchableSource.clear();
     d->stage = mapShaderStage(stage);
 }
 
@@ -350,6 +356,9 @@ void QSpirvCompiler::setFlags(Flags flags)
 
 QByteArray QSpirvCompiler::compileToSpirv()
 {
+    if (d->stage == EShLangVertex && d->flags.testFlag(RewriteToMakeBatchableForSG) && d->batchableSource.isEmpty())
+        d->batchableSource = QShaderBatchableRewriter::addZAdjustment(d->source);
+
     return d->compile() ? d->spirv : QByteArray();
 }
 

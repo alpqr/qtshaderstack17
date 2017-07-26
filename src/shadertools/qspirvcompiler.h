@@ -52,7 +52,8 @@ public:
     ~QSpirvCompiler();
 
     enum Flag {
-        UseOpenGLRules = 0x01
+        UseOpenGLRules = 0x01,
+        RewriteToMakeBatchableForSG = 0x02
     };
     Q_DECLARE_FLAGS(Flags, Flag)
 

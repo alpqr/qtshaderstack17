@@ -47,10 +47,14 @@ static bool writeToFile(const QByteArray &buf, const QString &filename, bool tex
     return true;
 }
 
-static QByteArray compile(const QString &fn, QString *outSpvName)
+static QByteArray compile(const QString &fn, QString *outSpvName, bool makeBatchable)
 {
     QSpirvCompiler compiler;
     compiler.setSourceFileName(fn);
+    QSpirvCompiler::Flags flags = 0;
+    if (makeBatchable)
+        flags |= QSpirvCompiler::RewriteToMakeBatchableForSG;
+    compiler.setFlags(flags);
     const QByteArray spirv = compiler.compileToSpirv();
     if (spirv.isEmpty()) {
         qDebug("%s", qPrintable(compiler.errorMessage()));
@@ -76,19 +80,21 @@ int main(int argc, char **argv)
     cmdLineParser.addOption(versionOption);
     QCommandLineOption clipSpaceOption(QStringList() << "c" << "fix-clipspace", QObject::tr("Fix up depth [0, w] -> [-w, w]"));
     cmdLineParser.addOption(clipSpaceOption);
-    QCommandLineOption hlslOption(QStringList() << "l" << "hlsl", QObject::tr("Output HLSL as well (experimental)"));
+    QCommandLineOption hlslOption(QStringList() << "l" << "hlsl", QObject::tr("Output HLSL as well (experimental)."));
     cmdLineParser.addOption(hlslOption);
-    QCommandLineOption mslOption(QStringList() << "m" << "msl", QObject::tr("Output MSL as well (experimental)"));
+    QCommandLineOption mslOption(QStringList() << "m" << "msl", QObject::tr("Output MSL as well (experimental)."));
     cmdLineParser.addOption(mslOption);
-    QCommandLineOption stripOption(QStringList() << "s" << "strip", QObject::tr("Strip the output SPIR-V"));
+    QCommandLineOption stripOption(QStringList() << "s" << "strip", QObject::tr("Strip the output SPIR-V."));
     cmdLineParser.addOption(stripOption);
+    QCommandLineOption batchableOption(QStringList() << "b" << "batchable", QObject::tr("Rewrite the vertex shader for Qt Quick scene graph batching."));
+    cmdLineParser.addOption(batchableOption);
 
     cmdLineParser.process(app);
 
     for (const QString &fn : cmdLineParser.positionalArguments()) {
         // Compile to SPIR-V.
         QString spvName;
-        QByteArray spirv = compile(fn, &spvName);
+        QByteArray spirv = compile(fn, &spvName, cmdLineParser.isSet(batchableOption));
         if (spirv.isEmpty())
             return 1;
 
