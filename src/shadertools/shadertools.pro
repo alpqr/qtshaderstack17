@@ -18,7 +18,7 @@ SOURCES += \
 
 INCLUDEPATH += $$PWD $$PWD/../3rdparty/SPIRV-Cross $$PWD/../3rdparty/glslang
 
-STATICLIBS = qtspirv-cross qtglslang-glslang qtglslang-spirv qtglslang-osdependent qtglslang-oglcompiler qtglslang-hlsl
+STATICLIBS = qtspirv-cross qtglslang-glslang qtglslang-spirv qtglslang-osdependent qtglslang-oglcompiler # qtglslang-hlsl
 for(libname, STATICLIBS) {
     staticlib = $$[QT_HOST_LIBS]/$${QMAKE_PREFIX_STATICLIB}$$qtLibraryTarget($$libname).$${QMAKE_EXTENSION_STATICLIB}
     LIBS_PRIVATE += $$staticlib
