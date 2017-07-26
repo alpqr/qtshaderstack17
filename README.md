@@ -10,6 +10,6 @@ Experiments for more modern graphics shader management in future Qt
 
 4. Use QSpirvCompiler to compile (Vulkan-flavored) GLSL to SPIR-V.
 
-5. Use QSpirvShader parse a SPIR-V binary to get reflection data and to translate to GLSL suitable for various OpenGL (ES) versions.
+5. Use QSpirvShader parse a SPIR-V binary to get reflection data, to strip the binary, and to translate to GLSL suitable for various OpenGL (ES) versions. (or to HLSL/MSL)
 
 6. The reflection data (QShaderDescription) can also be serialized to binary and human-readable JSON, and deserialized from binary JSON.

@@ -39,10 +39,12 @@
 #include <QFile>
 #include <QDebug>
 
+#include <SPIRV/SPVRemapper.h>
+
 #define SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS
-#include "spirv_glsl.hpp"
-#include "spirv_hlsl.hpp"
-#include "spirv_msl.hpp"
+#include <spirv_glsl.hpp>
+#include <spirv_hlsl.hpp>
+#include <spirv_msl.hpp>
 
 QT_BEGIN_NAMESPACE
 
@@ -58,12 +60,17 @@ struct QSpirvShaderPrivate
                                                uint32_t memberIdx,
                                                uint32_t memberTypeId);
 
+    void remapErrorHandler(const std::string &s);
+    void remapLogHandler(const std::string &s);
+
     QByteArray ir;
     QShaderDescription shaderDescription;
 
     spirv_cross::CompilerGLSL *glslGen = nullptr;
     spirv_cross::CompilerHLSL *hlslGen = nullptr;
     spirv_cross::CompilerMSL *mslGen = nullptr;
+
+    QString remapErrorMsg;
 };
 
 QSpirvShaderPrivate::~QSpirvShaderPrivate()
@@ -330,6 +337,45 @@ void QSpirvShader::setSpirvBinary(const QByteArray &spirv)
 QShaderDescription QSpirvShader::shaderDescription() const
 {
     return d->shaderDescription;
+}
+
+void QSpirvShaderPrivate::remapErrorHandler(const std::string &s)
+{
+    if (!remapErrorMsg.isEmpty())
+        remapErrorMsg.append(QLatin1Char('\n'));
+    remapErrorMsg.append(QString::fromStdString(s));
+}
+
+void QSpirvShaderPrivate::remapLogHandler(const std::string &)
+{
+}
+
+QByteArray QSpirvShader::strippedSpirvBinary(StripFlags flags, QString *errorMessage) const
+{
+    if (d->ir.isEmpty())
+        return QByteArray();
+
+    spv::spirvbin_t b;
+
+    d->remapErrorMsg.clear();
+    b.registerErrorHandler(std::bind(&QSpirvShaderPrivate::remapErrorHandler, d, std::placeholders::_1));
+    b.registerLogHandler(std::bind(&QSpirvShaderPrivate::remapLogHandler, d, std::placeholders::_1));
+
+    const uint32_t opts = flags.testFlag(Remap) ? spv::spirvbin_t::DO_EVERYTHING : spv::spirvbin_t::STRIP;
+
+    std::vector<uint32_t> v;
+    v.resize(d->ir.size() / 4);
+    memcpy(v.data(), d->ir.constData(), d->ir.size());
+
+    b.remap(v, opts);
+
+    if (!d->remapErrorMsg.isEmpty()) {
+        if (errorMessage)
+            *errorMessage = d->remapErrorMsg;
+        return QByteArray();
+    }
+
+    return QByteArray(reinterpret_cast<const char *>(v.data()), int(v.size()) * 4);
 }
 
 QByteArray QSpirvShader::translateToGLSL(int version, GlslFlags flags) const

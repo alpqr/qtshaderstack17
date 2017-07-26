@@ -55,6 +55,11 @@ public:
     };
     Q_DECLARE_FLAGS(GlslFlags, GlslFlag)
 
+    enum StripFlag {
+        Remap = 0x01
+    };
+    Q_DECLARE_FLAGS(StripFlags, StripFlag)
+
     QSpirvShader();
     ~QSpirvShader();
 
@@ -63,6 +68,8 @@ public:
     void setSpirvBinary(const QByteArray &spirv);
 
     QShaderDescription shaderDescription() const;
+
+    QByteArray strippedSpirvBinary(StripFlags flags = 0, QString *errorMessage = nullptr) const;
 
     QByteArray translateToGLSL(int version = 120, GlslFlags flags = 0) const;
     QByteArray translateToHLSL() const;
@@ -74,6 +81,7 @@ private:
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QSpirvShader::GlslFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(QSpirvShader::StripFlags)
 
 QT_END_NAMESPACE
 

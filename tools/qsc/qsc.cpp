@@ -47,22 +47,20 @@ static bool writeToFile(const QByteArray &buf, const QString &filename, bool tex
     return true;
 }
 
-static QString compile(const QString &fn)
+static QByteArray compile(const QString &fn, QString *outSpvName)
 {
     QSpirvCompiler compiler;
     compiler.setSourceFileName(fn);
-    QByteArray spirv = compiler.compileToSpirv();
+    const QByteArray spirv = compiler.compileToSpirv();
     if (spirv.isEmpty()) {
         qDebug("%s", qPrintable(compiler.errorMessage()));
-        return QString();
+        return QByteArray();
     }
 
     QFileInfo info(fn);
-    const QString spvName = info.filePath() + QLatin1String(".spv");
-    if (!writeToFile(spirv, spvName))
-        return QString();
+    *outSpvName = info.filePath() + QLatin1String(".spv");
 
-    return spvName;
+    return spirv;
 }
 
 int main(int argc, char **argv)
@@ -82,20 +80,38 @@ int main(int argc, char **argv)
     cmdLineParser.addOption(hlslOption);
     QCommandLineOption mslOption(QStringList() << "m" << "msl", QObject::tr("Output MSL as well (experimental)"));
     cmdLineParser.addOption(mslOption);
+    QCommandLineOption stripOption(QStringList() << "s" << "strip", QObject::tr("Strip the output SPIR-V"));
+    cmdLineParser.addOption(stripOption);
 
     cmdLineParser.process(app);
 
     for (const QString &fn : cmdLineParser.positionalArguments()) {
         // Compile to SPIR-V.
-        const QString spvName = compile(fn);
-        if (spvName.isEmpty())
+        QString spvName;
+        QByteArray spirv = compile(fn, &spvName);
+        if (spirv.isEmpty())
             return 1;
 
-        // Read and process the SPIR-V binary.
-        QSpirvShader spirv;
-        spirv.setFileName(spvName);
-        QShaderDescription desc = spirv.shaderDescription();
+        // Generate reflection information from the SPIR-V binary.
+        QSpirvShader shader;
+        shader.setSpirvBinary(spirv);
+        QShaderDescription desc = shader.shaderDescription();
         if (!desc.isValid())
+            return 1;
+
+        // Strip the SPIR-V binary, if requested.
+        if (cmdLineParser.isSet(stripOption)) {
+            QString errMsg;
+            const QByteArray strippedSpirv = shader.strippedSpirvBinary(0, &errMsg);
+            if (strippedSpirv.isEmpty()) {
+                qDebug("%s", qPrintable(errMsg));
+                return 1;
+            }
+            spirv = strippedSpirv; // only used for the file write, QSpirvShader has the original still
+        }
+
+        // Write out to the .spv file
+        if (!writeToFile(spirv, spvName))
             return 1;
 
         QFileInfo info(spvName);
@@ -146,21 +162,21 @@ int main(int argc, char **argv)
             QString glslName = outBaseName + QLatin1String(".glsl") + QString::number(ver.version);
             if (ver.es)
                 glslName += QLatin1String("es");
-            if (!writeToFile(spirv.translateToGLSL(ver.version, flags), glslName, true))
+            if (!writeToFile(shader.translateToGLSL(ver.version, flags), glslName, true))
                 return 1;
         }
 
         // HLSL.
         if (cmdLineParser.isSet(hlslOption)) {
             const QString hlslName = outBaseName + QLatin1String(".hlsl");
-            if (!writeToFile(spirv.translateToHLSL(), hlslName, true))
+            if (!writeToFile(shader.translateToHLSL(), hlslName, true))
                 return 1;
         }
 
         // Metal SL.
         if (cmdLineParser.isSet(mslOption)) {
             const QString mslName = outBaseName + QLatin1String(".msl");
-            if (!writeToFile(spirv.translateToMSL(), mslName, true))
+            if (!writeToFile(shader.translateToMSL(), mslName, true))
                 return 1;
         }
     }
