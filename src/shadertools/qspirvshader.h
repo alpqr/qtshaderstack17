@@ -64,7 +64,7 @@ public:
 
     QShaderDescription shaderDescription() const;
 
-    QByteArray translateToGLSL(int version = 100, GlslFlags flags = GlslEs) const;
+    QByteArray translateToGLSL(int version = 120, GlslFlags flags = 0) const;
     QByteArray translateToHLSL() const;
     QByteArray translateToMSL() const;
 
