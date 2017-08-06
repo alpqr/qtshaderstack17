@@ -47,13 +47,10 @@ static bool writeToFile(const QByteArray &buf, const QString &filename, bool tex
     return true;
 }
 
-static QByteArray compile(const QString &fn, QString *outSpvName, bool makeBatchable)
+static QByteArray compile(const QString &fn, QString *outSpvName, QSpirvCompiler::Flags flags)
 {
     QSpirvCompiler compiler;
     compiler.setSourceFileName(fn);
-    QSpirvCompiler::Flags flags = 0;
-    if (makeBatchable)
-        flags |= QSpirvCompiler::RewriteToMakeBatchableForSG;
     compiler.setFlags(flags);
     const QByteArray spirv = compiler.compileToSpirv();
     if (spirv.isEmpty()) {
@@ -74,19 +71,21 @@ int main(int argc, char **argv)
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
     cmdLineParser.addPositionalArgument(QLatin1String("file"), QObject::tr("Shader to compile. Extension must be .vert, .frag, etc."), QObject::tr("files..."));
-    QCommandLineOption versionOption(QStringList() << "n" << "versions",
+    QCommandLineOption versionOption({ "n", "versions" },
                                      QObject::tr("Comma-separated list of output GLSL versions (e.g. 100 es, 120, 300 es, 330, etc.). Defaults to \"100 es,120,330\". Set to \"\" to disable GLSL."),
                                      QObject::tr("version"));
     cmdLineParser.addOption(versionOption);
-    QCommandLineOption clipSpaceOption(QStringList() << "c" << "fix-clipspace", QObject::tr("Fix up depth [0, w] -> [-w, w]"));
+    QCommandLineOption glSpvOption({ "g", "gl-spv" }, QObject::tr("Use OpenGL semantics."));
+    cmdLineParser.addOption(glSpvOption);
+    QCommandLineOption clipSpaceOption({ "c", "fix-clipspace" }, QObject::tr("Fix up depth [0, w] -> [-w, w]"));
     cmdLineParser.addOption(clipSpaceOption);
-    QCommandLineOption hlslOption(QStringList() << "l" << "hlsl", QObject::tr("Output HLSL as well (experimental)."));
+    QCommandLineOption hlslOption({ "l", "hlsl" }, QObject::tr("Output HLSL as well (experimental)."));
     cmdLineParser.addOption(hlslOption);
-    QCommandLineOption mslOption(QStringList() << "m" << "msl", QObject::tr("Output MSL as well (experimental)."));
+    QCommandLineOption mslOption({ "m", "msl" }, QObject::tr("Output MSL as well (experimental)."));
     cmdLineParser.addOption(mslOption);
-    QCommandLineOption stripOption(QStringList() << "s" << "strip", QObject::tr("Strip the output SPIR-V."));
+    QCommandLineOption stripOption({ "s", "strip" }, QObject::tr("Strip the output SPIR-V."));
     cmdLineParser.addOption(stripOption);
-    QCommandLineOption batchableOption(QStringList() << "b" << "batchable", QObject::tr("Rewrite the vertex shader for Qt Quick scene graph batching."));
+    QCommandLineOption batchableOption({ "b", "batchable" }, QObject::tr("Rewrite the vertex shader for Qt Quick scene graph batching."));
     cmdLineParser.addOption(batchableOption);
 
     cmdLineParser.process(app);
@@ -94,7 +93,12 @@ int main(int argc, char **argv)
     for (const QString &fn : cmdLineParser.positionalArguments()) {
         // Compile to SPIR-V.
         QString spvName;
-        QByteArray spirv = compile(fn, &spvName, cmdLineParser.isSet(batchableOption));
+        QSpirvCompiler::Flags flags = 0;
+        if (cmdLineParser.isSet(glSpvOption))
+            flags |= QSpirvCompiler::UseOpenGLSemantics;
+        if (cmdLineParser.isSet(batchableOption))
+            flags |= QSpirvCompiler::RewriteToMakeBatchableForSG;
+        QByteArray spirv = compile(fn, &spvName, flags);
         if (spirv.isEmpty())
             return 1;
 

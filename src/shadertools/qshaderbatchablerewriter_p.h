@@ -45,7 +45,7 @@
 QT_BEGIN_NAMESPACE
 
 namespace QShaderBatchableRewriter {
-QByteArray addZAdjustment(const QByteArray &input);
+QByteArray addZAdjustment(const QByteArray &input, bool glSpv);
 }
 
 QT_END_NAMESPACE

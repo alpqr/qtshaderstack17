@@ -41,7 +41,9 @@
 
 // This is a slightly modified version of qsgshaderrewriter.cpp from qtdeclarative/src/quick/scenegraph/coreapi.
 //
-// For now it uses a push constant block with a single member and an attribute with location 7.
+// It uses a push constant block with a single member - or a uniform at
+// location 0 for OpenGL-targeted SPIR-V - and a vertex attribute at location 7.
+//
 
 QT_BEGIN_NAMESPACE
 
@@ -164,7 +166,7 @@ Tokenizer::Token Tokenizer::next()
     return Token_EOF;
 }
 
-QByteArray addZAdjustment(const QByteArray &input)
+QByteArray addZAdjustment(const QByteArray &input, bool glSpv)
 {
     Tokenizer tok;
     tok.initialize(input);
@@ -188,8 +190,11 @@ QByteArray addZAdjustment(const QByteArray &input)
     result.reserve(1024);
     result += QByteArray::fromRawData(input, voidPos - input);
 
-    result += "layout(location = 7) in float _qt_order;\n"
-              "layout(push_constant) uniform _Qt_PC { float zRange; } _qt_pc;\n";
+    result += QByteArrayLiteral("layout(location = 7) in float _qt_order;\n");
+    if (glSpv)
+        result += QByteArrayLiteral("layout(location = 0) uniform float _qt_zRange;\n");
+    else
+        result += QByteArrayLiteral("layout(push_constant) uniform _Qt { float zRange; } _qt;\n");
 
     // Find first brace '{'
     while (t != Tokenizer::Token_EOF && t != Tokenizer::Token_OpenBrace) t = tok.next();
@@ -203,7 +208,10 @@ QByteArray addZAdjustment(const QByteArray &input)
             braceDepth--;
             if (braceDepth == 0) {
                 result += QByteArray::fromRawData(voidPos, tok.pos - 1 - voidPos);
-                result += QByteArrayLiteral("    gl_Position.z = (gl_Position.z * _qt_pc.zRange + _qt_order) * gl_Position.w;\n");
+                if (glSpv)
+                    result += QByteArrayLiteral("    gl_Position.z = (gl_Position.z * _qt_zRange + _qt_order) * gl_Position.w;\n");
+                else
+                    result += QByteArrayLiteral("    gl_Position.z = (gl_Position.z * _qt.zRange + _qt_order) * gl_Position.w;\n");
                 result += QByteArray(tok.pos - 1);
                 return result;
             }
