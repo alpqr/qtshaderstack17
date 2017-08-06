@@ -251,15 +251,9 @@ bool QSpirvCompilerPrivate::compile()
     const int size = actualSource->size();
     shader.setStringsWithLengthsAndNames(&srcStr, &size, &fnStr, 1);
 
-    if (!flags.testFlag(QSpirvCompiler::UseOpenGLSemantics)) {
-        shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientVulkan, 100);
-        shader.setEnvClient(glslang::EShClientVulkan, 100);
-        shader.setEnvTarget(glslang::EshTargetSpv, 0x00001000);
-    } else {
-        shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientOpenGL, 100);
-        shader.setEnvClient(glslang::EShClientOpenGL, 450);
-        shader.setEnvTarget(glslang::EshTargetSpv, 0x00001000);
-    }
+    shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientVulkan, 100);
+    shader.setEnvClient(glslang::EShClientVulkan, 100);
+    shader.setEnvTarget(glslang::EshTargetSpv, 0x00001000);
 
     Includer includer;
     if (!shader.parse(&resourceLimits, 100, false, EShMsgDefault, includer)) {
@@ -357,7 +351,7 @@ void QSpirvCompiler::setFlags(Flags flags)
 QByteArray QSpirvCompiler::compileToSpirv()
 {
     if (d->stage == EShLangVertex && d->flags.testFlag(RewriteToMakeBatchableForSG) && d->batchableSource.isEmpty())
-        d->batchableSource = QShaderBatchableRewriter::addZAdjustment(d->source, d->flags.testFlag(UseOpenGLSemantics));
+        d->batchableSource = QShaderBatchableRewriter::addZAdjustment(d->source);
 
     return d->compile() ? d->spirv : QByteArray();
 }

@@ -52,8 +52,7 @@ public:
     ~QSpirvCompiler();
 
     enum Flag {
-        UseOpenGLSemantics = 0x01,
-        RewriteToMakeBatchableForSG = 0x02
+        RewriteToMakeBatchableForSG = 0x01
     };
     Q_DECLARE_FLAGS(Flags, Flag)
 

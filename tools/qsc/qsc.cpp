@@ -75,8 +75,6 @@ int main(int argc, char **argv)
                                      QObject::tr("Comma-separated list of output GLSL versions (e.g. 100 es, 120, 300 es, 330, etc.). Defaults to \"100 es,120,330\". Set to \"\" to disable GLSL."),
                                      QObject::tr("version"));
     cmdLineParser.addOption(versionOption);
-    QCommandLineOption glSpvOption({ "g", "gl-spv" }, QObject::tr("Use OpenGL semantics."));
-    cmdLineParser.addOption(glSpvOption);
     QCommandLineOption clipSpaceOption({ "c", "fix-clipspace" }, QObject::tr("Fix up depth [0, w] -> [-w, w]"));
     cmdLineParser.addOption(clipSpaceOption);
     QCommandLineOption hlslOption({ "l", "hlsl" }, QObject::tr("Output HLSL as well (experimental)."));
@@ -94,8 +92,6 @@ int main(int argc, char **argv)
         // Compile to SPIR-V.
         QString spvName;
         QSpirvCompiler::Flags flags = 0;
-        if (cmdLineParser.isSet(glSpvOption))
-            flags |= QSpirvCompiler::UseOpenGLSemantics;
         if (cmdLineParser.isSet(batchableOption))
             flags |= QSpirvCompiler::RewriteToMakeBatchableForSG;
         QByteArray spirv = compile(fn, &spvName, flags);
