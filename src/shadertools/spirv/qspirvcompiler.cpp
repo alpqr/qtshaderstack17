@@ -317,12 +317,27 @@ void QSpirvCompiler::setSourceFileName(const QString &fileName)
     }
 }
 
-static inline EShLanguage mapShaderStage(QSpirvCompiler::Stage stage)
+static inline EShLanguage mapShaderStage(QBakedShader::ShaderStage stage)
 {
-    return EShLanguage(stage);
+    switch (stage) {
+    case QBakedShader::VertexStage:
+        return EShLangVertex;
+    case QBakedShader::TessControlStage:
+        return EShLangTessControl;
+    case QBakedShader::TessEvaluationStage:
+        return EShLangTessEvaluation;
+    case QBakedShader::GeometryStage:
+        return EShLangGeometry;
+    case QBakedShader::FragmentStage:
+        return EShLangFragment;
+    case QBakedShader::ComputeStage:
+        return EShLangCompute;
+    default:
+        return EShLangVertex;
+    }
 }
 
-void QSpirvCompiler::setSourceFileName(const QString &fileName, Stage stage)
+void QSpirvCompiler::setSourceFileName(const QString &fileName, QBakedShader::ShaderStage stage)
 {
     if (!d->readFile(fileName))
         return;
@@ -330,12 +345,12 @@ void QSpirvCompiler::setSourceFileName(const QString &fileName, Stage stage)
     d->stage = mapShaderStage(stage);
 }
 
-void QSpirvCompiler::setSourceDevice(QIODevice *device, Stage stage, const QString &fileName)
+void QSpirvCompiler::setSourceDevice(QIODevice *device, QBakedShader::ShaderStage stage, const QString &fileName)
 {
     setSourceString(device->readAll(), stage, fileName);
 }
 
-void QSpirvCompiler::setSourceString(const QByteArray &sourceString, Stage stage, const QString &fileName)
+void QSpirvCompiler::setSourceString(const QByteArray &sourceString, QBakedShader::ShaderStage stage, const QString &fileName)
 {
     d->sourceFileName = fileName; // for error messages, include handling, etc.
     d->source = sourceString;

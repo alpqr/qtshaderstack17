@@ -1,2 +1,2 @@
 TEMPLATE = subdirs
-SUBDIRS += qsc
+SUBDIRS += qsb

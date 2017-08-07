@@ -1,5 +1,3 @@
 SOURCES += qsc.cpp
-
+CONFIG += console
 QT += shadertools
-
-load(qt_tool)

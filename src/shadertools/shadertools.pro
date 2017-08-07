@@ -6,17 +6,22 @@ DEFINES += QT_BUILD_SHADERTOOLS_LIB
 
 HEADERS += \
     $$PWD/qtshadertoolsglobal.h \
-    $$PWD/qspirvshader.h \
-    $$PWD/qspirvcompiler.h \
     $$PWD/qshaderdescription.h \
     $$PWD/qshaderdescription_p.h \
-    $$PWD/qshaderbatchablerewriter_p.h
+    $$PWD/qbakedshader.h \
+    $$PWD/qbakedshader_p.h \
+    $$PWD/qshaderbaker.h \
+    $$PWD/spirv/qspirvshader.h \
+    $$PWD/spirv/qspirvcompiler.h \
+    $$PWD/spirv/qshaderbatchablerewriter_p.h
 
 SOURCES += \
-    $$PWD/qspirvshader.cpp \
-    $$PWD/qspirvcompiler.cpp \
     $$PWD/qshaderdescription.cpp \
-    $$PWD/qshaderbatchablerewriter.cpp
+    $$PWD/qbakedshader.cpp \
+    $$PWD/qshaderbaker.cpp \
+    $$PWD/spirv/qspirvshader.cpp \
+    $$PWD/spirv/qspirvcompiler.cpp \
+    $$PWD/spirv/qshaderbatchablerewriter.cpp
 
 INCLUDEPATH += $$PWD $$PWD/../3rdparty/SPIRV-Cross $$PWD/../3rdparty/glslang
 

@@ -34,52 +34,44 @@
 **
 ****************************************************************************/
 
-#ifndef QSPIRVCOMPILER_H
-#define QSPIRVCOMPILER_H
+#ifndef QSHADERBAKER_H
+#define QSHADERBAKER_H
 
 #include <QtShaderTools/qtshadertoolsglobal.h>
-#include <QtCore/QString>
+#include <QtShaderTools/qbakedshader.h>
 
 QT_BEGIN_NAMESPACE
 
-struct QSpirvCompilerPrivate;
+struct QShaderBakerPrivate;
 class QIODevice;
 
-class Q_SHADERTOOLS_EXPORT QSpirvCompiler
+class Q_SHADERTOOLS_EXPORT QShaderBaker
 {
 public:
-    QSpirvCompiler();
-    ~QSpirvCompiler();
-
-    enum Flag {
-        RewriteToMakeBatchableForSG = 0x01
-    };
-    Q_DECLARE_FLAGS(Flags, Flag)
-
-    enum Stage {
-        VertexStage,
-        TessControlStage,
-        TessEvaluationStage,
-        GeometryStage,
-        FragmentStage,
-        ComputeStage
-    };
+    QShaderBaker();
+    ~QShaderBaker();
 
     void setSourceFileName(const QString &fileName);
-    void setSourceFileName(const QString &fileName, Stage stage);
-    void setSourceDevice(QIODevice *device, Stage stage, const QString &fileName = QString());
-    void setSourceString(const QByteArray &sourceString, Stage stage, const QString &fileName = QString());
-    void setFlags(Flags flags);
+    void setSourceFileName(const QString &fileName, QBakedShader::ShaderStage stage);
 
-    QByteArray compileToSpirv();
+    void setSourceDevice(QIODevice *device, QBakedShader::ShaderStage stage,
+                         const QString &fileName = QString());
+
+    void setSourceString(const QByteArray &sourceString, QBakedShader::ShaderStage stage,
+                         const QString &fileName = QString());
+
+    typedef QPair<QBakedShader::ShaderSource, QBakedShader::ShaderSourceVersion> GeneratedShader;
+    void setGeneratedShaders(const QVector<GeneratedShader> &v);
+    void setGeneratedShaderVariants(const QVector<QBakedShader::ShaderVariant> &v);
+
+    QBakedShader bake();
+
     QString errorMessage() const;
 
 private:
-    Q_DISABLE_COPY(QSpirvCompiler)
-    QSpirvCompilerPrivate *d = nullptr;
+    Q_DISABLE_COPY(QShaderBaker)
+    QShaderBakerPrivate *d = nullptr;
 };
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(QSpirvCompiler::Flags)
 
 QT_END_NAMESPACE
 
