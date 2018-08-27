@@ -252,8 +252,8 @@ bool QSpirvCompilerPrivate::compile()
     shader.setStringsWithLengthsAndNames(&srcStr, &size, &fnStr, 1);
 
     shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientVulkan, 100);
-    shader.setEnvClient(glslang::EShClientVulkan, 100);
-    shader.setEnvTarget(glslang::EshTargetSpv, 0x00001000);
+    shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
+    shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
 
     Includer includer;
     if (!shader.parse(&resourceLimits, 100, false, EShMsgDefault, includer)) {

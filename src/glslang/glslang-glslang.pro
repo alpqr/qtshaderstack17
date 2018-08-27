@@ -11,6 +11,7 @@ include($$PWD/glslang_common.pri)
 
 SOURCES += \
     $$GLSLANG_PATH/glslang/MachineIndependent/glslang_tab.cpp \
+    $$GLSLANG_PATH/glslang/MachineIndependent/attribute.cpp \
     $$GLSLANG_PATH/glslang/MachineIndependent/Constant.cpp \
     $$GLSLANG_PATH/glslang/MachineIndependent/iomapper.cpp \
     $$GLSLANG_PATH/glslang/MachineIndependent/InfoSink.cpp \
