@@ -75,8 +75,8 @@ public:
             : version(version), flags(flags)
         { }
 
-        int version = 0;
-        Flags flags = 0;
+        int version = 100;
+        Flags flags;
     };
 
     enum ShaderVariant {
@@ -87,8 +87,8 @@ public:
     struct ShaderKey {
         ShaderKey() { }
         ShaderKey(ShaderSource source,
-                  const ShaderSourceVersion &sourceVersion,
-                  ShaderVariant variant)
+                  const ShaderSourceVersion &sourceVersion = ShaderSourceVersion(),
+                  ShaderVariant variant = QBakedShader::NormalShader)
             : source(source),
               sourceVersion(sourceVersion),
               variant(variant)
