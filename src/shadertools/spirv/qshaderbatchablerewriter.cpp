@@ -174,7 +174,7 @@ QByteArray addZAdjustment(const QByteArray &input)
     Tokenizer::Token t = tok.next();
 
     // First find "void main() { ... "
-    const char* voidPos = input;
+    const char* voidPos = input.constData();
     while (t != Tokenizer::Token_EOF) {
         if (lt == Tokenizer::Token_Void && t == Tokenizer::Token_Identifier) {
             if (qstrncmp("main", tok.identifier, 4) == 0)
@@ -187,7 +187,7 @@ QByteArray addZAdjustment(const QByteArray &input)
 
     QByteArray result;
     result.reserve(1024);
-    result += QByteArray::fromRawData(input, voidPos - input);
+    result += QByteArray::fromRawData(input.constData(), voidPos - input.constData());
 
     result += QByteArrayLiteral("layout(location = 7) in float _qt_order;\n");
     result += QByteArrayLiteral("layout(push_constant) uniform _Qt { float zRange; } _qt;\n");
