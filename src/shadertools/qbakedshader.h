@@ -71,7 +71,7 @@ public:
         Q_DECLARE_FLAGS(Flags, Flag)
 
         ShaderSourceVersion() { }
-    ShaderSourceVersion(int version_, Flags flags_ = Flags())
+        ShaderSourceVersion(int version_, Flags flags_ = Flags())
             : version(version_), flags(flags_)
         { }
 
