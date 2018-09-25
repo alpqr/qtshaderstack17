@@ -71,8 +71,8 @@ public:
         Q_DECLARE_FLAGS(Flags, Flag)
 
         ShaderSourceVersion() { }
-        ShaderSourceVersion(int version, Flags flags = 0)
-            : version(version), flags(flags)
+    ShaderSourceVersion(int version_, Flags flags_ = Flags())
+            : version(version_), flags(flags_)
         { }
 
         int version = 100;
@@ -86,12 +86,12 @@ public:
 
     struct ShaderKey {
         ShaderKey() { }
-        ShaderKey(ShaderSource source,
-                  const ShaderSourceVersion &sourceVersion = ShaderSourceVersion(),
-                  ShaderVariant variant = QBakedShader::NormalShader)
-            : source(source),
-              sourceVersion(sourceVersion),
-              variant(variant)
+        ShaderKey(ShaderSource source_,
+                  const ShaderSourceVersion &sourceVersion_ = ShaderSourceVersion(),
+                  ShaderVariant variant_ = QBakedShader::NormalShader)
+            : source(source_),
+              sourceVersion(sourceVersion_),
+              variant(variant_)
         { }
 
         ShaderSource source = SpirvShader;
@@ -101,8 +101,8 @@ public:
 
     struct Shader {
         Shader() { }
-        Shader(const QByteArray &shader, const QByteArray &entryPoint = QByteArray())
-            : shader(shader), entryPoint(entryPoint)
+        Shader(const QByteArray &shader_, const QByteArray &entryPoint_ = QByteArray())
+            : shader(shader_), entryPoint(entryPoint_)
         { }
 
         QByteArray shader;

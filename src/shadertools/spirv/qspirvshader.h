@@ -69,9 +69,9 @@ public:
 
     QShaderDescription shaderDescription() const;
 
-    QByteArray strippedSpirvBinary(StripFlags flags = 0, QString *errorMessage = nullptr) const;
+    QByteArray strippedSpirvBinary(StripFlags flags = StripFlags(), QString *errorMessage = nullptr) const;
 
-    QByteArray translateToGLSL(int version = 120, GlslFlags flags = 0) const;
+    QByteArray translateToGLSL(int version = 120, GlslFlags flags = GlslFlags()) const;
     QByteArray translateToHLSL() const;
     QByteArray translateToMSL() const;
 
