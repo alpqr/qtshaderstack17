@@ -232,7 +232,7 @@ int main(int argc, char **argv)
             }
         }
         if (cmdLineParser.isSet(hlslOption))
-            genShaders << qMakePair(QBakedShader::HlslShader, QBakedShader::ShaderSourceVersion());
+            genShaders << qMakePair(QBakedShader::HlslShader, QBakedShader::ShaderSourceVersion(50));
         if (cmdLineParser.isSet(mslOption))
             genShaders << qMakePair(QBakedShader::MslShader, QBakedShader::ShaderSourceVersion());
         baker.setGeneratedShaders(genShaders);

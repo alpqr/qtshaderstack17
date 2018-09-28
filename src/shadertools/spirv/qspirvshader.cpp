@@ -410,10 +410,14 @@ QByteArray QSpirvShader::translateToGLSL(int version, GlslFlags flags) const
     return src;
 }
 
-QByteArray QSpirvShader::translateToHLSL() const
+QByteArray QSpirvShader::translateToHLSL(int version) const
 {
     if (!d->hlslGen)
         d->hlslGen = new spirv_cross::CompilerHLSL(reinterpret_cast<const uint32_t *>(d->ir.constData()), d->ir.size() / 4);
+
+    spirv_cross::CompilerHLSL::Options options;
+    options.shader_model = version;
+    d->hlslGen->set_hlsl_options(options);
 
     const std::string hlsl = d->hlslGen->compile();
 

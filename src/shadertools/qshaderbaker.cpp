@@ -189,7 +189,7 @@ QBakedShader QShaderBaker::bake()
             }
                 break;
             case QBakedShader::HlslShader:
-                shader.shader = currentSpirvShader->translateToHLSL();
+                shader.shader = currentSpirvShader->translateToHLSL(req.second.version);
                 break;
             case QBakedShader::MslShader:
                 shader.shader = currentSpirvShader->translateToMSL();

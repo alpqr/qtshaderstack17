@@ -72,7 +72,7 @@ public:
     QByteArray strippedSpirvBinary(StripFlags flags = StripFlags(), QString *errorMessage = nullptr) const;
 
     QByteArray translateToGLSL(int version = 120, GlslFlags flags = GlslFlags()) const;
-    QByteArray translateToHLSL() const;
+    QByteArray translateToHLSL(int version = 50) const;
     QByteArray translateToMSL() const;
 
 private:
