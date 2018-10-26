@@ -1,3 +1,4 @@
+Note: Further development is now happening at https://git.qt.io/laagocs/qtrhi
 
 Experiments for more modern graphics shader management in future Qt
 ===================================================================
